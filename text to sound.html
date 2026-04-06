@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة التواصل للصم والبكم - تحويل النص إلى كلام</title>
+    <style>
+        :root {
+            --primary: #1500e0;
+            --secondary: #4390e0;
+            --accent: #f9ff00;
+            --background: #ffffff;
+            --light-gray: #f2f4f7;
+            --text: #1f2937;
+            --muted: #5d6b7b;
+            --heading: #2340b8;
+            --card-bg: #ffffff;
+            --card-border: rgba(67, 144, 224, 0.18);
+            --shadow: 0 16px 36px rgba(21, 0, 224, 0.08);
+            --panel-soft: #f2f7fd;
+            --button-bg: #1500e0;
+            --button-bg-hover: #1000b0;
+            --button-text: #ffffff;
+            --secondary-soft: rgba(67, 144, 224, 0.12);
+            --surface: #ffffff;
+            --surface-soft: #f8fbff;
+        }
+
+        body[data-theme="dark"] {
+            --background: #0d1524;
+            --light-gray: #162033;
+            --text: #e7eef8;
+            --muted: #b3bfd3;
+            --heading: #a9bcff;
+            --card-bg: #121c2d;
+            --card-border: rgba(111, 146, 199, 0.22);
+            --shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
+            --panel-soft: #172335;
+            --button-bg: #5b78d6;
+            --button-bg-hover: #6a86de;
+            --button-text: #ffffff;
+            --secondary-soft: rgba(103, 148, 216, 0.18);
+            --surface: #162235;
+            --surface-soft: #101a2b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--background);
+            color: var(--text);
+        }
+
+        body.ltr {
+            direction: ltr;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        .app-shell {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 290px;
+            background: var(--background);
+            border-left: 1px solid var(--card-border);
+            padding: 28px 22px;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            z-index: 1000;
+            transform: translateX(0);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar.closed {
+            transform: translateX(100%);
+        }
+
+        .sidebar-brand {
+            padding-bottom: 22px;
+            border-bottom: 1px solid var(--card-border);
+            margin-bottom: 22px;
+        }
+
+        .sidebar-brand h2 {
+            font-size: 1.35rem;
+            margin-bottom: 8px;
+            color: var(--heading);
+        }
+
+        .sidebar-brand p {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .sidebar-links {
+            display: grid;
+            gap: 12px;
+        }
+
+        .sidebar-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 14px 16px;
+            border: 1px solid transparent;
+            border-radius: 16px;
+            background: var(--light-gray);
+            font-weight: 600;
+            transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .sidebar-link:hover,
+        .sidebar-link.active {
+            background: var(--secondary-soft);
+            border-color: rgba(67, 144, 224, 0.3);
+            transform: translateX(-4px);
+        }
+
+        .sidebar-note {
+            margin-top: 24px;
+            padding: 16px;
+            border-radius: 16px;
+            background: var(--panel-soft);
+            border: 1px solid var(--card-border);
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .sidebar-controls {
+            display: grid;
+            gap: 14px;
+            margin-top: 18px;
+        }
+
+        .settings-group {
+            display: grid;
+            gap: 8px;
+        }
+
+        .setting-label {
+            font-size: 0.92rem;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .settings-select,
+        .theme-toggle {
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid var(--card-border);
+            background: var(--surface);
+            color: var(--text);
+            padding: 12px 14px;
+            font-size: 0.95rem;
+        }
+
+        .theme-toggle {
+            cursor: pointer;
+            font-weight: 700;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: translateY(-2px);
+            background: var(--secondary-soft);
+        }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(31, 41, 55, 0.28);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 999;
+        }
+
+        .overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .page {
+            flex: 1;
+            width: 100%;
+            padding: 24px;
+            padding-right: 330px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 22px;
+            box-shadow: var(--shadow);
+        }
+
+        .topbar {
+            max-width: 1100px;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 18px;
+        }
+
+        .menu-btn {
+            border: 2px solid transparent;
+            background: var(--button-bg);
+            color: var(--button-text);
+            border-radius: 16px;
+            padding: 13px 22px;
+            cursor: pointer;
+            font-weight: 700;
+            box-shadow: 0 12px 24px rgba(21, 0, 224, 0.18);
+        }
+
+        .topbar-text h1 {
+            font-size: 1.2rem;
+            margin-bottom: 4px;
+            color: var(--heading);
+        }
+
+        .topbar-text p,
+        .intro-text p,
+        .voice-status,
+        .helper-card p {
+            color: var(--muted);
+        }
+
+        .main-grid {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            gap: 20px;
+        }
+
+        .intro {
+            padding: 28px;
+            background: linear-gradient(135deg, #ffffff 0%, #f4f8ff 72%, #eef5ff 100%);
+        }
+
+        .intro h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: var(--heading);
+        }
+
+        .speech-panel {
+            padding: 24px;
+        }
+
+        .section-title {
+            font-size: 1.45rem;
+            margin-bottom: 8px;
+            color: var(--heading);
+        }
+
+        .speech-controls,
+        .tts-language-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .speech-input {
+            flex: 1;
+            min-width: 240px;
+            padding: 14px;
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        .btn {
+            padding: 12px 18px;
+            border-radius: 16px;
+            border: 1px solid transparent;
+            background: var(--button-bg);
+            color: var(--button-text);
+            cursor: pointer;
+            transition: transform 0.2s ease, background 0.2s ease;
+            min-width: 140px;
+            font-weight: 700;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            background: var(--button-bg-hover);
+        }
+
+        .btn-speak {
+            background: var(--primary);
+        }
+
+        .btn-stop {
+            background: var(--secondary);
+        }
+
+        .btn-tts-language {
+            background: var(--surface);
+            color: var(--text);
+            border-color: var(--card-border);
+        }
+
+        .btn-tts-language.active {
+            background: var(--accent);
+            box-shadow: none;
+        }
+
+        .voice-status {
+            margin-top: 18px;
+            padding: 14px;
+            border-radius: 18px;
+            background: var(--surface-soft);
+            border: 1px solid var(--card-border);
+            text-align: center;
+        }
+
+        body[data-theme="dark"] .intro {
+            background: var(--surface-soft);
+        }
+
+        @media (max-width: 1024px) {
+            .page {
+                padding-right: 24px;
+            }
+
+            .sidebar {
+                transform: translateX(100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+        }
+
+        @media (max-width: 640px) {
+            .page {
+                padding: 16px;
+            }
+
+            .topbar,
+            .intro,
+            .speech-panel {
+                padding: 18px;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-shell">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <h2 data-i18n="brandTitle">منصة التواصل</h2>
+                <p data-i18n="brandText">وصول سريع للخدمات والإعدادات.</p>
+            </div>
+            <nav class="sidebar-links">
+                <a href="index.html" class="sidebar-link" data-i18n="navHome">الرئيسية</a>
+                <a href="camera.html" class="sidebar-link" data-i18n="navCamera">التعرف على الإشارات</a>
+                <a href="text-to-sign.html" class="sidebar-link" data-i18n="navTextSign">النص إلى إشارة</a>
+                <a href="text%20to%20sound.html" class="sidebar-link active" data-i18n="navTextSpeech">النص إلى كلام</a>
+            </nav>
+            <div class="sidebar-controls">
+                <div class="settings-group">
+                    <label class="setting-label" for="platformLanguageSelect" data-i18n="languageLabel">لغة
+                        المنصة</label>
+                    <select id="platformLanguageSelect" class="settings-select">
+                        <option value="ar">العربية</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+                <div class="settings-group">
+                    <span class="setting-label" data-i18n="themeLabel">المظهر</span>
+                    <button class="theme-toggle" id="themeToggle" type="button"></button>
+                </div>
+            </div>
+            <div class="sidebar-note">
+                <span data-i18n="sidebarNote">واجهة مختصرة للكتابة والنطق فقط.</span>
+            </div>
+        </aside>
+
+        <div class="overlay" id="overlay"></div>
+
+        <main class="page">
+            <div class="topbar card">
+                <button class="menu-btn" id="menuToggle" type="button" data-i18n="menuBtn">القائمة</button>
+                <div class="topbar-text">
+                    <h1 data-i18n="pageTitle">تحويل النص إلى كلام</h1>
+                    <p data-i18n="pageIntro">اكتب النص واستمع له مباشرة.</p>
+                </div>
+            </div>
+
+            <div class="main-grid">
+                <section class="card intro">
+                    <div class="intro-text">
+                        <h2 data-i18n="introTitle">اكتب النص واستمع إليه مباشرة</h2>
+                        <p data-i18n="introText">واجهة بسيطة للنطق العربي أو الإنجليزي.</p>
+                    </div>
+                </section>
+
+                <section class="card speech-panel">
+                    <h2 class="section-title" data-i18n="speechSectionTitle">تحويل النص إلى كلام</h2>
+                    <p id="speechDescription" data-i18n="speechDescription">أدخل النص الذي تريد تحويله إلى صوت.</p>
+
+                    <div class="tts-language-controls">
+                        <button id="ttsArabicBtn" class="btn btn-tts-language active" type="button"
+                            data-i18n="ttsArabicBtn">نطق عربي</button>
+                        <button id="ttsEnglishBtn" class="btn btn-tts-language" type="button"
+                            data-i18n="ttsEnglishBtn">نطق إنجليزي</button>
+                    </div>
+
+                    <div class="speech-controls">
+                        <input type="text" id="textInput" class="speech-input" data-i18n-placeholder="textPlaceholder"
+                            placeholder="أدخل النص هنا...">
+                        <button id="speakBtn" class="btn btn-speak" type="button" data-i18n="speakBtn">تكلم</button>
+                        <button id="stopSpeakBtn" class="btn btn-stop" type="button" data-i18n="stopSpeakBtn">إيقاف
+                            الصوت</button>
+                    </div>
+
+                    <div id="voiceStatus" class="voice-status" data-i18n="voiceReady">حالة الصوت: جاهز</div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const menuToggle = document.getElementById('menuToggle');
+        const themeToggle = document.getElementById('themeToggle');
+        const platformLanguageSelect = document.getElementById('platformLanguageSelect');
+
+        const uiTranslations = {
+            ar: {
+                documentTitle: 'منصة التواصل للصم والبكم - تحويل النص إلى كلام',
+                brandTitle: 'منصة التواصل',
+                brandText: 'وصول سريع للخدمات والإعدادات.',
+                navHome: 'الرئيسية',
+                navCamera: 'التعرف على الإشارات',
+                navTextSign: 'النص إلى إشارة',
+                navTextSpeech: 'النص إلى كلام',
+                languageLabel: 'لغة المنصة',
+                themeLabel: 'المظهر',
+                sidebarNote: 'واجهة مختصرة للكتابة والنطق فقط.',
+                menuBtn: 'القائمة',
+                pageTitle: 'تحويل النص إلى كلام',
+                pageIntro: 'اكتب النص واستمع له مباشرة.',
+                introTitle: 'اكتب النص واستمع إليه مباشرة',
+                introText: 'واجهة بسيطة للنطق العربي أو الإنجليزي.',
+                speechSectionTitle: 'تحويل النص إلى كلام',
+                speechDescription: 'أدخل النص الذي تريد تحويله إلى صوت.',
+                ttsArabicBtn: 'نطق عربي',
+                ttsEnglishBtn: 'نطق إنجليزي',
+                textPlaceholder: 'أدخل النص هنا...',
+                speakBtn: 'تكلم',
+                stopSpeakBtn: 'إيقاف الصوت',
+                voiceReady: 'حالة الصوت: جاهز',
+                voiceArabicPreferred: 'حالة الصوت: العربي مفضل والإنجليزي متاح',
+                voiceArabicAvailable: 'حالة الصوت: النطق العربي متاح',
+                voiceArabicFallback: 'حالة الصوت: سيتم محاولة النطق العربي، والإنجليزي متاح كبديل',
+                voiceArabicBrowser: 'حالة الصوت: سيتم استخدام النطق العربي من المتصفح',
+                voiceArabicSelected: 'حالة الصوت: تم اختيار النطق العربي',
+                voiceEnglishSelected: 'حالة الصوت: تم اختيار النطق الإنجليزي',
+                voiceEnglishBrowser: 'حالة الصوت: سيتم محاولة النطق الإنجليزي من المتصفح',
+                alertArabicUnavailable: 'النطق العربي غير متوفر في متصفحك.',
+                alertEnglishUnavailable: 'النطق الإنجليزي غير متوفر في متصفحك.',
+                voiceArabicTyping: 'حالة الصوت: تم تفعيل العربية تلقائيًا للنص المكتوب',
+                voiceArabicError: 'حالة الصوت: تعذر تشغيل العربية في المتصفح الحالي',
+                themeToDark: 'تفعيل الوضع الداكن',
+                themeToLight: 'تفعيل الوضع الفاتح'
+            },
+            en: {
+                documentTitle: 'Communication Platform - Text to Speech',
+                brandTitle: 'Communication Platform',
+                brandText: 'Quick access to services and settings.',
+                navHome: 'Home',
+                navCamera: 'Sign Recognition',
+                navTextSign: 'Text to Sign',
+                navTextSpeech: 'Text to Speech',
+                languageLabel: 'Platform Language',
+                themeLabel: 'Appearance',
+                sidebarNote: 'A compact page for typing and speech only.',
+                menuBtn: 'Menu',
+                pageTitle: 'Text to Speech',
+                pageIntro: 'Type text and listen instantly.',
+                introTitle: 'Type text and hear it right away',
+                introText: 'A simple interface for Arabic or English speech.',
+                speechSectionTitle: 'Text to Speech',
+                speechDescription: 'Enter the text you want to convert to speech.',
+                ttsArabicBtn: 'Arabic Voice',
+                ttsEnglishBtn: 'English Voice',
+                textPlaceholder: 'Enter text here...',
+                speakBtn: 'Speak',
+                stopSpeakBtn: 'Stop',
+                voiceReady: 'Voice status: Ready',
+                voiceArabicPreferred: 'Voice status: Arabic preferred and English available',
+                voiceArabicAvailable: 'Voice status: Arabic voice available',
+                voiceArabicFallback: 'Voice status: Arabic will be tried, English is available as fallback',
+                voiceArabicBrowser: 'Voice status: Browser Arabic speech will be used',
+                voiceArabicSelected: 'Voice status: Arabic voice selected',
+                voiceEnglishSelected: 'Voice status: English voice selected',
+                voiceEnglishBrowser: 'Voice status: English will be requested from the browser',
+                alertArabicUnavailable: 'Arabic speech is not available in your browser.',
+                alertEnglishUnavailable: 'English speech is not available in your browser.',
+                voiceArabicTyping: 'Voice status: Arabic was selected automatically for the typed text',
+                voiceArabicError: 'Voice status: Arabic playback failed in this browser',
+                themeToDark: 'Enable Dark Mode',
+                themeToLight: 'Enable Light Mode'
+            }
+        };
+
+        function setSidebarState(open) {
+            if (window.innerWidth <= 1024) {
+                sidebar.classList.toggle('open', open);
+            } else {
+                sidebar.classList.toggle('closed', !open);
+            }
+            overlay.classList.toggle('visible', open && window.innerWidth <= 1024);
+        }
+
+        menuToggle.addEventListener('click', () => {
+            const isMobile = window.innerWidth <= 1024;
+            const open = isMobile ? !sidebar.classList.contains('open') : sidebar.classList.contains('closed');
+            setSidebarState(open);
+        });
+
+        overlay.addEventListener('click', () => setSidebarState(false));
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 1024) {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('visible');
+            }
+        });
+
+        function getPlatformLanguage() {
+            return localStorage.getItem('platform-language') || 'ar';
+        }
+
+        function getPlatformTheme() {
+            return localStorage.getItem('platform-theme') || 'light';
+        }
+
+        function t(key) {
+            const lang = getPlatformLanguage();
+            return (uiTranslations[lang] && uiTranslations[lang][key]) || uiTranslations.ar[key] || key;
+        }
+
+        function updateThemeButton() {
+            themeToggle.textContent = getPlatformTheme() === 'dark' ? t('themeToLight') : t('themeToDark');
+        }
+
+        function applyPlatformLanguage(lang) {
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+            document.body.classList.toggle('ltr', lang === 'en');
+            localStorage.setItem('platform-language', lang);
+            document.title = t('documentTitle');
+            platformLanguageSelect.value = lang;
+            document.querySelectorAll('[data-i18n]').forEach((element) => {
+                const key = element.dataset.i18n;
+                element.textContent = t(key);
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach((element) => {
+                element.placeholder = t(element.dataset.i18nPlaceholder);
+            });
+            updateThemeButton();
+        }
+
+        function applyTheme(theme) {
+            document.body.dataset.theme = theme;
+            localStorage.setItem('platform-theme', theme);
+            updateThemeButton();
+        }
+
+        platformLanguageSelect.addEventListener('change', (event) => {
+            applyPlatformLanguage(event.target.value);
+            checkVoiceSupport();
+        });
+
+        themeToggle.addEventListener('click', () => {
+            const nextTheme = getPlatformTheme() === 'dark' ? 'light' : 'dark';
+            applyTheme(nextTheme);
+        });
+
+        let currentUtterance = null;
+        let ttsLanguage = 'ar';
+        let arabicVoiceAvailable = false;
+        let englishVoiceAvailable = false;
+        let ttsFallbackAttempted = false;
+
+        const voiceStatus = document.getElementById('voiceStatus');
+        const textInput = document.getElementById('textInput');
+        const speakBtn = document.getElementById('speakBtn');
+        const stopSpeakBtn = document.getElementById('stopSpeakBtn');
+        const ttsArabicBtn = document.getElementById('ttsArabicBtn');
+        const ttsEnglishBtn = document.getElementById('ttsEnglishBtn');
+
+        function getPreferredVoice(language) {
+            const voices = speechSynthesis.getVoices();
+            const preferredGroups = language === 'ar' ? [
+                (voice) => voice.lang.toLowerCase() === 'ar-sa',
+                (voice) => voice.lang.toLowerCase().startsWith('ar'),
+                (voice) => voice.name.toLowerCase().includes('arabic')
+            ] : [
+                (voice) => voice.lang.toLowerCase() === 'en-us',
+                (voice) => voice.lang.toLowerCase() === 'en-gb',
+                (voice) => voice.lang.toLowerCase().startsWith('en')
+            ];
+
+            for (const matcher of preferredGroups) {
+                const matchedVoice = voices.find(matcher);
+                if (matchedVoice) return matchedVoice;
+            }
+
+            return null;
+        }
+
+        function updateLanguageButtons() {
+            ttsArabicBtn.classList.toggle('active', ttsLanguage === 'ar');
+            ttsEnglishBtn.classList.toggle('active', ttsLanguage === 'en');
+        }
+
+        function checkVoiceSupport() {
+            const arabicVoice = getPreferredVoice('ar');
+            const englishVoice = getPreferredVoice('en');
+
+            arabicVoiceAvailable = !!arabicVoice;
+            englishVoiceAvailable = !!englishVoice;
+
+            if (arabicVoiceAvailable && englishVoiceAvailable) {
+                ttsLanguage = 'ar';
+                voiceStatus.textContent = t('voiceArabicPreferred');
+            } else if (arabicVoiceAvailable) {
+                ttsLanguage = 'ar';
+                voiceStatus.textContent = t('voiceArabicAvailable');
+            } else if (englishVoiceAvailable) {
+                ttsLanguage = 'ar';
+                voiceStatus.textContent = t('voiceArabicFallback');
+            } else {
+                ttsLanguage = 'ar';
+                voiceStatus.textContent = t('voiceArabicBrowser');
+            }
+
+            updateLanguageButtons();
+        }
+
+        function containsArabic(text) {
+            return /[\u0600-\u06FF]/.test(text);
+        }
+
+        function translateToEnglish(arabicText) {
+            const translations = {
+                'مرحباً': 'Hello',
+                'مرحبا': 'Hello',
+                'شكراً': 'Thank you',
+                'شكرا': 'Thank you',
+                'نعم': 'Yes',
+                'أوافق': 'I agree',
+                'أرفض': 'I refuse',
+                'مساعدة': 'Help'
+            };
+
+            return translations[arabicText] || arabicText;
+        }
+
+        function speakText(text) {
+            if (!text) return;
+
+            if (currentUtterance) {
+                speechSynthesis.cancel();
+            }
+
+            const normalizedText = text.trim();
+            const shouldUseArabic = ttsLanguage === 'ar' || containsArabic(normalizedText);
+            if (shouldUseArabic && ttsLanguage !== 'ar') {
+                switchTTSLanguage('ar');
+                voiceStatus.textContent = arabicVoiceAvailable
+                    ? t('voiceArabicSelected')
+                    : t('voiceArabicBrowser');
+            }
+
+            currentUtterance = new SpeechSynthesisUtterance(text);
+            if (shouldUseArabic) {
+                const arabicVoice = getPreferredVoice('ar');
+                currentUtterance.lang = 'ar-SA';
+                currentUtterance.rate = 0.9;
+                currentUtterance.text = normalizedText;
+
+                if (arabicVoice) {
+                    currentUtterance.voice = arabicVoice;
+                }
+            } else {
+                const englishVoice = getPreferredVoice('en');
+                currentUtterance.lang = 'en-US';
+                currentUtterance.rate = 1;
+                if (englishVoice) {
+                    currentUtterance.voice = englishVoice;
+                }
+
+                if (containsArabic(text)) {
+                    currentUtterance.text = translateToEnglish(text);
+                }
+            }
+
+            currentUtterance.onend = () => {
+                currentUtterance = null;
+                ttsFallbackAttempted = false;
+            };
+
+            currentUtterance.onerror = () => {
+                currentUtterance = null;
+                if (shouldUseArabic) {
+                    voiceStatus.textContent = t('voiceArabicError');
+                    return;
+                }
+                if (englishVoiceAvailable && !ttsFallbackAttempted) {
+                    ttsFallbackAttempted = true;
+                    speakText(text);
+                }
+            };
+
+            speechSynthesis.speak(currentUtterance);
+        }
+
+        function stopSpeech() {
+            if (speechSynthesis.speaking) {
+                speechSynthesis.cancel();
+                currentUtterance = null;
+            }
+        }
+
+        function switchTTSLanguage(lang) {
+            ttsLanguage = lang;
+            ttsArabicBtn.classList.toggle('active', lang === 'ar');
+            ttsEnglishBtn.classList.toggle('active', lang === 'en');
+        }
+
+        function setupSpeechEventListeners() {
+            speakBtn.addEventListener('click', () => speakText(textInput.value));
+            stopSpeakBtn.addEventListener('click', stopSpeech);
+            textInput.addEventListener('input', () => {
+                const trimmed = textInput.value.trim().toLowerCase();
+                if (['اهلا', 'مرحبا', 'عماد', 'احمد'].some(word => trimmed === word)) {
+                    speakText(trimmed);
+                }
+                if (containsArabic(textInput.value) && ttsLanguage !== 'ar') {
+                    switchTTSLanguage('ar');
+                    voiceStatus.textContent = t('voiceArabicTyping');
+                }
+            });
+            textInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    speakText(textInput.value);
+                }
+            });
+        }
+
+        function setupTTSLanguageControls() {
+            ttsArabicBtn.addEventListener('click', () => {
+                switchTTSLanguage('ar');
+                voiceStatus.textContent = arabicVoiceAvailable
+                    ? t('voiceArabicSelected')
+                    : t('voiceArabicBrowser');
+            });
+
+            ttsEnglishBtn.addEventListener('click', () => {
+                switchTTSLanguage('en');
+                voiceStatus.textContent = englishVoiceAvailable
+                    ? t('voiceEnglishSelected')
+                    : t('voiceEnglishBrowser');
+            });
+        }
+
+        function initializeSpeech() {
+            const loadVoices = () => checkVoiceSupport();
+
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = loadVoices;
+            }
+
+            applyTheme(getPlatformTheme());
+            applyPlatformLanguage(getPlatformLanguage());
+            loadVoices();
+            setupSpeechEventListeners();
+            setupTTSLanguageControls();
+        }
+
+        window.addEventListener('load', initializeSpeech);
+    </script>
+</body>
+
+</html>

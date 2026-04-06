@@ -1,0 +1,1745 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة التواصل للصم والبكم - التعرف على الإشارات</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <style>
+        :root {
+            --primary: #1500e0;
+            --secondary: #4390e0;
+            --accent: #f9ff00;
+            --background: #ffffff;
+            --light-gray: #f2f4f7;
+            --text: #1f2937;
+            --muted: #5d6b7b;
+            --heading: #2340b8;
+            --card-bg: #ffffff;
+            --card-border: rgba(67, 144, 224, 0.18);
+            --shadow: 0 16px 36px rgba(21, 0, 224, 0.08);
+            --panel-soft: #f2f7fd;
+            --button-bg: #1500e0;
+            --button-bg-hover: #1000b0;
+            --button-text: #ffffff;
+            --secondary-soft: rgba(67, 144, 224, 0.12);
+            --surface: #ffffff;
+            --surface-soft: #f8fbff;
+        }
+
+        body[data-theme="dark"] {
+            --background: #0d1524;
+            --light-gray: #162033;
+            --text: #e7eef8;
+            --muted: #b3bfd3;
+            --heading: #a9bcff;
+            --card-bg: #121c2d;
+            --card-border: rgba(111, 146, 199, 0.22);
+            --shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
+            --panel-soft: #172335;
+            --button-bg: #5b78d6;
+            --button-bg-hover: #6a86de;
+            --button-text: #ffffff;
+            --secondary-soft: rgba(103, 148, 216, 0.18);
+            --surface: #162235;
+            --surface-soft: #101a2b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--background);
+            color: var(--text);
+        }
+
+        body.ltr {
+            direction: ltr;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        .app-shell {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 290px;
+            background: var(--background);
+            border-left: 1px solid var(--card-border);
+            padding: 28px 22px;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            z-index: 1000;
+            transform: translateX(0);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar.closed {
+            transform: translateX(100%);
+        }
+
+        .sidebar-brand {
+            padding-bottom: 22px;
+            border-bottom: 1px solid var(--card-border);
+            margin-bottom: 22px;
+        }
+
+        .sidebar-brand h2 {
+            font-size: 1.35rem;
+            margin-bottom: 8px;
+            color: var(--heading);
+        }
+
+        .sidebar-brand p {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .sidebar-links {
+            display: grid;
+            gap: 12px;
+        }
+
+        .sidebar-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 14px 16px;
+            border: 1px solid transparent;
+            border-radius: 16px;
+            background: var(--light-gray);
+            font-weight: 600;
+            transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .sidebar-link:hover,
+        .sidebar-link.active {
+            background: var(--secondary-soft);
+            border-color: rgba(67, 144, 224, 0.3);
+            transform: translateX(-4px);
+        }
+
+        .sidebar-note {
+            margin-top: 24px;
+            padding: 16px;
+            border-radius: 16px;
+            background: var(--panel-soft);
+            border: 1px solid var(--card-border);
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .sidebar-controls {
+            display: grid;
+            gap: 14px;
+            margin-top: 18px;
+        }
+
+        .settings-group {
+            display: grid;
+            gap: 8px;
+        }
+
+        .setting-label {
+            font-size: 0.92rem;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .settings-select,
+        .theme-toggle {
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid var(--card-border);
+            background: var(--surface);
+            color: var(--text);
+            padding: 12px 14px;
+            font-size: 0.95rem;
+        }
+
+        .theme-toggle {
+            cursor: pointer;
+            font-weight: 700;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: translateY(-2px);
+            background: var(--secondary-soft);
+        }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(31, 41, 55, 0.28);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 999;
+        }
+
+        .overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .page {
+            flex: 1;
+            width: 100%;
+            padding: 24px;
+            padding-right: 330px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 22px;
+            box-shadow: var(--shadow);
+        }
+
+        .topbar {
+            max-width: 1280px;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 18px;
+        }
+
+        .menu-btn,
+        .btn {
+            border: none;
+            cursor: pointer;
+            color: var(--button-text);
+        }
+
+        .menu-btn {
+            border: 2px solid transparent;
+            background: var(--button-bg);
+            border-radius: 16px;
+            padding: 13px 22px;
+            box-shadow: 0 12px 24px rgba(21, 0, 224, 0.18);
+            font-weight: 700;
+        }
+
+        .topbar-text h1 {
+            font-size: 1.2rem;
+            margin-bottom: 4px;
+            color: var(--heading);
+        }
+
+        .topbar-text p,
+        .panel-subtitle,
+        .voice-status,
+        .page-intro p {
+            color: var(--muted);
+        }
+
+        .main-grid {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            gap: 20px;
+        }
+
+        .page-intro {
+            padding: 28px;
+            display: grid;
+            grid-template-columns: 1.6fr 1fr;
+            gap: 18px;
+            background: linear-gradient(135deg, #ffffff 0%, #f4f8ff 72%, #eef5ff 100%);
+        }
+
+        .page-intro h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: var(--heading);
+        }
+
+        .quick-stats {
+            display: grid;
+            gap: 12px;
+        }
+
+        .quick-box {
+            padding: 16px;
+            border-radius: 18px;
+            background: var(--surface);
+            border: 1px solid var(--card-border);
+        }
+
+        .quick-box strong {
+            display: block;
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            padding: 22px;
+        }
+
+        .panel-title {
+            font-size: 1.35rem;
+            margin-bottom: 6px;
+            color: var(--heading);
+        }
+
+        .panel-subtitle {
+            margin-bottom: 18px;
+        }
+
+        .video-frame,
+        .canvas-frame {
+            width: 100%;
+            min-height: 320px;
+            background: rgba(0, 0, 0, 0.65);
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        #inputVideo,
+        #outputCanvas {
+            width: 100%;
+            height: 100%;
+            min-height: 320px;
+            display: block;
+            object-fit: cover;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .btn {
+            padding: 12px 18px;
+            border-radius: 16px;
+            background: var(--button-bg);
+            border: 1px solid transparent;
+            transition: transform 0.2s ease, background 0.2s ease;
+            flex: 1;
+            min-width: 130px;
+            font-weight: 700;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            background: var(--button-bg-hover);
+        }
+
+        .btn-stop {
+            background: var(--secondary);
+        }
+
+        .btn-reset {
+            background: var(--surface);
+            color: var(--text);
+            border-color: var(--card-border);
+        }
+
+        .result-card {
+            margin-top: 16px;
+            padding: 18px;
+            border-radius: 18px;
+            background: var(--surface-soft);
+            border: 1px solid var(--card-border);
+        }
+
+        .gesture-name {
+            font-size: 1.8rem;
+            text-align: center;
+            margin: 10px 0;
+            color: var(--text);
+            font-weight: bold;
+        }
+
+        .gesture-description {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .confidence-bar {
+            height: 10px;
+            background: rgba(113, 113, 122, 0.16);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .confidence-level {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #3f3f46, #a1a1aa);
+            transition: width 0.3s ease;
+        }
+
+        .confidence-text {
+            text-align: center;
+            margin-top: 8px;
+            font-size: 0.92rem;
+        }
+
+        .sign-image {
+            display: block;
+            max-width: 150px;
+            max-height: 150px;
+            margin: 14px auto 0;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .support-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+
+
+        body[data-theme="dark"] .page-intro {
+            background: var(--surface-soft);
+        }
+
+        @media (max-width: 1024px) {
+            .page {
+                padding-right: 24px;
+            }
+
+            .sidebar {
+                transform: translateX(100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .page-intro,
+            .workspace,
+            .support-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .page {
+                padding: 16px;
+            }
+
+            .topbar,
+            .page-intro,
+            .panel {
+                padding: 18px;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-shell">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <h2 data-i18n="brandTitle">منصة التواصل</h2>
+                <p data-i18n="brandText">وصول سريع للخدمات والإعدادات.</p>
+            </div>
+            <nav class="sidebar-links">
+                <a href="index.html" class="sidebar-link" data-i18n="navHome">الرئيسية</a>
+                <a href="camera.html" class="sidebar-link active" data-i18n="navCamera">التعرف على الإشارات</a>
+                <a href="text-to-sign.html" class="sidebar-link" data-i18n="navTextSign">النص إلى إشارة</a>
+                <a href="text%20to%20sound.html" class="sidebar-link" data-i18n="navTextSpeech">النص إلى كلام</a>
+            </nav>
+            <div class="sidebar-controls">
+                <div class="settings-group">
+                    <label class="setting-label" for="platformLanguageSelect" data-i18n="languageLabel">لغة
+                        المنصة</label>
+                    <select id="platformLanguageSelect" class="settings-select">
+                        <option value="ar">العربية</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+                <div class="settings-group">
+                    <span class="setting-label" data-i18n="themeLabel">المظهر</span>
+                    <button class="theme-toggle" id="themeToggle" type="button"></button>
+                </div>
+            </div>
+            <div class="sidebar-note">
+                <span data-i18n="sidebarNote">الكاميرا والنتيجة والأدوات في مكان واحد.</span>
+            </div>
+        </aside>
+
+        <div class="overlay" id="overlay"></div>
+
+        <main class="page">
+            <div class="topbar card">
+                <button class="menu-btn" id="menuToggle" type="button" data-i18n="menuBtn">القائمة</button>
+                <div class="topbar-text">
+                    <h1 data-i18n="pageTitle">التعرف على الإشارات</h1>
+                    <p data-i18n="pageIntro">شغّل الكاميرا وتابع النتيجة مباشرة.</p>
+                </div>
+            </div>
+
+            <div class="main-grid">
+                <section class="card page-intro">
+                    <div>
+                        <h2 data-i18n="introTitle">تحليل الإشارة وعرض النتيجة بشكل منظم</h2>
+                        <p data-i18n="introText">واجهة أبسط لالتقاط الإشارة ومراجعة النتيجة.</p>
+                    </div>
+                    <div class="quick-stats">
+                        <div class="quick-box">
+                            <strong data-i18n="quickOneTitle">الكاميرا</strong>
+                            <span data-i18n="quickOneText">تشغيل وإيقاف وإعادة التعرف.</span>
+                        </div>
+                        <div class="quick-box">
+                            <strong data-i18n="quickTwoTitle">النتيجة</strong>
+                            <span data-i18n="quickTwoText">عرض الاسم والثقة والصورة المرجعية.</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="workspace">
+                    <div class="card panel">
+                        <h2 class="panel-title" data-i18n="cameraPanelTitle">لوحة الكاميرا</h2>
+                        <p class="panel-subtitle" data-i18n="cameraPanelText">شغّل الكاميرا ثم نفّذ الإشارة.</p>
+                        <div class="video-frame">
+                            <video id="inputVideo" autoplay playsinline></video>
+                        </div>
+                        <div class="controls">
+                            <button id="startBtn" class="btn" type="button" data-i18n="startBtn">تشغيل الكاميرا</button>
+                            <button id="stopBtn" class="btn btn-stop" type="button" data-i18n="stopBtn">إيقاف
+                                الكاميرا</button>
+                            <button id="resetBtn" class="btn btn-reset" type="button" data-i18n="resetBtn">إعادة
+                                التعرف</button>
+                        </div>
+                    </div>
+
+                    <div class="card panel">
+                        <h2 class="panel-title" data-i18n="resultPanelTitle">لوحة النتائج</h2>
+                        <p class="panel-subtitle" data-i18n="resultPanelText">تظهر هنا الإشارة المكتشفة.</p>
+                        <div class="canvas-frame">
+                            <canvas id="outputCanvas" width="640" height="480"></canvas>
+                        </div>
+                        <div class="result-card">
+                            <p class="gesture-description" data-i18n="gestureLabel">الإشارة المكتشفة</p>
+                            <div class="gesture-name" id="gestureName">لم يتم التعرف على إشارة بعد</div>
+                            <div class="confidence-bar">
+                                <div class="confidence-level" id="confidenceLevel"></div>
+                            </div>
+                            <div class="confidence-text" id="confidenceText">ثقة: 0%</div>
+                            <p class="gesture-description" id="gestureDescription">قم بأداء إشارة بلغة الإشارة أمام
+                                الكاميرا</p>
+                            <img id="gestureImage" class="sign-image" alt="" style="display:none;">
+                        </div>
+                    </div>
+                </section>
+
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const menuToggle = document.getElementById('menuToggle');
+        const themeToggle = document.getElementById('themeToggle');
+        const platformLanguageSelect = document.getElementById('platformLanguageSelect');
+
+        const uiTranslations = {
+            ar: {
+                documentTitle: 'منصة التواصل للصم والبكم - التعرف على الإشارات',
+                brandTitle: 'منصة التواصل',
+                brandText: 'وصول سريع للخدمات والإعدادات.',
+                navHome: 'الرئيسية',
+                navCamera: 'التعرف على الإشارات',
+                navTextSign: 'النص إلى إشارة',
+                navTextSpeech: 'النص إلى كلام',
+                languageLabel: 'لغة المنصة',
+                themeLabel: 'المظهر',
+                sidebarNote: 'الكاميرا والنتيجة والأدوات في مكان واحد.',
+                menuBtn: 'القائمة',
+                pageTitle: 'التعرف على الإشارات',
+                pageIntro: 'شغّل الكاميرا وتابع النتيجة مباشرة.',
+                introTitle: 'تحليل الإشارة وعرض النتيجة بشكل منظم',
+                introText: 'واجهة أبسط لالتقاط الإشارة ومراجعة النتيجة.',
+                quickOneTitle: 'الكاميرا',
+                quickOneText: 'تشغيل وإيقاف وإعادة التعرف.',
+                quickTwoTitle: 'النتيجة',
+                quickTwoText: 'عرض الاسم والثقة والصورة المرجعية.',
+                cameraPanelTitle: 'لوحة الكاميرا',
+                cameraPanelText: 'شغّل الكاميرا ثم نفّذ الإشارة.',
+                startBtn: 'تشغيل الكاميرا',
+                stopBtn: 'إيقاف الكاميرا',
+                resetBtn: 'إعادة التعرف',
+                resultPanelTitle: 'لوحة النتائج',
+                resultPanelText: 'تظهر هنا الإشارة المكتشفة.',
+                gestureLabel: 'الإشارة المكتشفة',
+                emptyGestureName: 'لم يتم التعرف على إشارة بعد',
+                emptyGestureDescription: 'قم بأداء إشارة بلغة الإشارة أمام الكاميرا',
+                confidencePrefix: 'ثقة',
+                speechPanelTitle: 'تحويل النص إلى كلام',
+                speechDescription: 'أدخل النص الذي تريد تحويله إلى صوت.',
+                ttsArabicBtn: 'نطق عربي',
+                ttsEnglishBtn: 'نطق إنجليزي',
+                textPlaceholder: 'أدخل النص هنا...',
+                speakBtn: 'تكلم',
+                stopSpeakBtn: 'إيقاف الصوت',
+                voiceReady: 'حالة الصوت: جاهز',
+                lettersPanelTitle: 'بناء الكلمات بالحروف',
+                lettersPanelText: 'انقر على أي حرف لإضافته إلى الكلمة الحالية.',
+                clearWordBtn: 'مسح الكلمة',
+                speakWordBtn: 'نطق الكلمة',
+                addSpaceBtn: 'إضافة مسافة',
+                emptyWord: '...',
+                cameraUnavailable: 'تعذر الوصول إلى الكاميرا',
+                cameraUnsupported: 'المتصفح لا يدعم الكاميرا أو تم تعطيلها',
+                cameraPermission: 'يرجى منح الإذن للوصول إلى الكاميرا أو التحقق من توفرها',
+                cameraUnsupportedAlert: 'المتصفح لا يدعم الكاميرا أو تم تعطيلها.',
+                cameraPermissionAlert: 'تعذر الوصول إلى الكاميرا. يرجى التحقق من الأذونات.',
+                voiceArabicPreferred: 'حالة الصوت: العربي مفضل والإنجليزي متاح',
+                voiceArabicAvailable: 'حالة الصوت: النطق العربي متاح',
+                voiceEnglishAvailable: 'حالة الصوت: العربي غير متوفر، الإنجليزي متاح',
+                voiceNoSupport: 'حالة الصوت: لا توجد أصوات مدعومة في المتصفح',
+                alertNoVoice: 'لا يوجد صوت متاح للتشغيل في المتصفح.',
+                alertArabicUnavailable: 'النطق العربي غير متوفر في متصفحك.',
+                alertEnglishUnavailable: 'النطق الإنجليزي غير متوفر في متصفحك.',
+                themeToDark: 'تفعيل الوضع الداكن',
+                themeToLight: 'تفعيل الوضع الفاتح'
+            },
+            en: {
+                documentTitle: 'Communication Platform - Sign Recognition',
+                brandTitle: 'Communication Platform',
+                brandText: 'Quick access to services and settings.',
+                navHome: 'Home',
+                navCamera: 'Sign Recognition',
+                navTextSign: 'Text to Sign',
+                navTextSpeech: 'Text to Speech',
+                languageLabel: 'Platform Language',
+                themeLabel: 'Appearance',
+                sidebarNote: 'Camera, result, and tools in one place.',
+                menuBtn: 'Menu',
+                pageTitle: 'Sign Recognition',
+                pageIntro: 'Turn on the camera and follow the result live.',
+                introTitle: 'Analyze the sign and review the result clearly',
+                introText: 'A simpler layout for capture and review.',
+                quickOneTitle: 'Camera',
+                quickOneText: 'Start, stop, and reset recognition.',
+                quickTwoTitle: 'Result',
+                quickTwoText: 'View name, confidence, and reference image.',
+                cameraPanelTitle: 'Camera Panel',
+                cameraPanelText: 'Turn on the camera, then perform the sign.',
+                startBtn: 'Start Camera',
+                stopBtn: 'Stop Camera',
+                resetBtn: 'Reset Recognition',
+                resultPanelTitle: 'Result Panel',
+                resultPanelText: 'The detected sign appears here.',
+                gestureLabel: 'Detected Sign',
+                emptyGestureName: 'No sign detected yet',
+                emptyGestureDescription: 'Perform a sign in front of the camera',
+                confidencePrefix: 'Confidence',
+                speechPanelTitle: 'Text to Speech',
+                speechDescription: 'Enter the text you want to convert to speech.',
+                ttsArabicBtn: 'Arabic Voice',
+                ttsEnglishBtn: 'English Voice',
+                textPlaceholder: 'Enter text here...',
+                speakBtn: 'Speak',
+                stopSpeakBtn: 'Stop',
+                voiceReady: 'Voice status: Ready',
+                lettersPanelTitle: 'Build Words',
+                lettersPanelText: 'Click any letter to add it to the current word.',
+                clearWordBtn: 'Clear Word',
+                speakWordBtn: 'Speak Word',
+                addSpaceBtn: 'Add Space',
+                emptyWord: '...',
+                cameraUnavailable: 'Camera unavailable',
+                cameraUnsupported: 'The browser does not support the camera or it is disabled',
+                cameraPermission: 'Allow camera access or check availability',
+                cameraUnsupportedAlert: 'The browser does not support the camera or it is disabled.',
+                cameraPermissionAlert: 'Could not access the camera. Please check permissions.',
+                voiceArabicPreferred: 'Voice status: Arabic preferred and English available',
+                voiceArabicAvailable: 'Voice status: Arabic voice available',
+                voiceEnglishAvailable: 'Voice status: Arabic unavailable, English available',
+                voiceNoSupport: 'Voice status: No supported voices in this browser',
+                alertNoVoice: 'No speech voice is available in the browser.',
+                alertArabicUnavailable: 'Arabic speech is not available in your browser.',
+                alertEnglishUnavailable: 'English speech is not available in your browser.',
+                themeToDark: 'Enable Dark Mode',
+                themeToLight: 'Enable Light Mode'
+            }
+        };
+
+        function setSidebarState(open) {
+            if (window.innerWidth <= 1024) {
+                sidebar.classList.toggle('open', open);
+            } else {
+                sidebar.classList.toggle('closed', !open);
+            }
+            overlay.classList.toggle('visible', open && window.innerWidth <= 1024);
+        }
+
+        menuToggle.addEventListener('click', () => {
+            const isMobile = window.innerWidth <= 1024;
+            const open = isMobile ? !sidebar.classList.contains('open') : sidebar.classList.contains('closed');
+            setSidebarState(open);
+        });
+
+        overlay.addEventListener('click', () => setSidebarState(false));
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 1024) {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('visible');
+            }
+        });
+
+        function getPlatformLanguage() {
+            return localStorage.getItem('platform-language') || 'ar';
+        }
+
+        function getPlatformTheme() {
+            return localStorage.getItem('platform-theme') || 'light';
+        }
+
+        function t(key) {
+            const lang = getPlatformLanguage();
+            return (uiTranslations[lang] && uiTranslations[lang][key]) || uiTranslations.ar[key] || key;
+        }
+
+        function updateThemeButton() {
+            themeToggle.textContent = getPlatformTheme() === 'dark' ? t('themeToLight') : t('themeToDark');
+        }
+
+        function applyPlatformLanguage(lang) {
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+            document.body.classList.toggle('ltr', lang === 'en');
+            localStorage.setItem('platform-language', lang);
+            document.title = t('documentTitle');
+            platformLanguageSelect.value = lang;
+            document.querySelectorAll('[data-i18n]').forEach((element) => {
+                element.textContent = t(element.dataset.i18n);
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach((element) => {
+                element.placeholder = t(element.dataset.i18nPlaceholder);
+            });
+            if (gestureImage && gestureImage.style.display === 'none') {
+                gestureName.textContent = t('emptyGestureName');
+                gestureDescription.textContent = t('emptyGestureDescription');
+            }
+            if (typeof currentWord !== 'undefined' && currentWord === '') {
+                currentWordElement.textContent = t('emptyWord');
+            }
+            updateThemeButton();
+        }
+
+        function applyTheme(theme) {
+            document.body.dataset.theme = theme;
+            localStorage.setItem('platform-theme', theme);
+            updateThemeButton();
+        }
+
+        platformLanguageSelect.addEventListener('change', (event) => {
+            applyPlatformLanguage(event.target.value);
+            checkVoiceSupport();
+            updateConfidence(0);
+        });
+
+        themeToggle.addEventListener('click', () => {
+            const nextTheme = getPlatformTheme() === 'dark' ? 'light' : 'dark';
+            applyTheme(nextTheme);
+        });
+
+        // ================== عناصر الكاميرا والـ UI ==================
+        const videoElement = document.getElementById('inputVideo');
+        const canvasElement = document.getElementById('outputCanvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const gestureName = document.getElementById('gestureName');
+        const gestureDescription = document.getElementById('gestureDescription');
+        const confidenceLevel = document.getElementById('confidenceLevel');
+        const confidenceText = document.getElementById('confidenceText');
+        const gestureImage = document.getElementById('gestureImage');
+
+        // حالة الكاميرا
+        let isCameraOn = false;
+        let hands = null;
+        let camera = null;
+        let lastGesture = null;
+        let lastGestureTime = 0;
+        const DEBOUNCE_MS = 1500;
+        let lastAppendedText = ''; // Keep for gesture debounce
+
+        // ================== تهيئة MediaPipe Hands ==================
+        function initializeHands() {
+            hands = new Hands({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                }
+            });
+
+            hands.setOptions({
+                maxNumHands: 2,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+
+            hands.onResults(onHandResults);
+        }
+
+        function onHandResults(results) {
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                for (const landmarks of results.multiHandLandmarks) {
+                    drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
+                        color: '#00FF00',
+                        lineWidth: 5
+                    });
+                    drawLandmarks(canvasCtx, landmarks, {
+                        color: '#FF0000',
+                        lineWidth: 2,
+                        radius: 4
+                    });
+                }
+                simulateGestureRecognition(results.multiHandLandmarks);
+            } else {
+                gestureName.textContent = t('emptyGestureName');
+                gestureDescription.textContent = t('emptyGestureDescription');
+                updateConfidence(0);
+                gestureImage.style.display = 'none';
+            }
+
+            canvasCtx.restore();
+        }
+
+        function updateConfidence(confidence) {
+            const percent = Math.round(confidence * 100);
+            confidenceLevel.style.width = `${percent}%`;
+            confidenceText.textContent = `${t('confidencePrefix')}: ${percent}%`;
+        }
+
+        // ================== محاكاة التعرف على الإشارات ==================
+        function simulateGestureRecognition(landmarksArray) {
+            if (!landmarksArray || landmarksArray.length === 0) return;
+
+            const hand = landmarksArray[0];
+
+            let detectedGesture = "لم يتم التعرف على إشارة";
+            let description = "استمر في أداء الإشارة";
+            let detectedText = "";
+            let confidence = 0;
+
+
+            // قبضة اليد = "نعم"
+            if (isFist(hand)) {
+                detectedGesture = "نعم";
+                description = "إشارة الموافقة (نعم)";
+                detectedText = "نعم";
+                confidence = 0.75;
+            }
+            // إصبع الإبهم فقط = "أ"
+            else if (isIndexFingerExtended(hand)) {
+                detectedGesture = "الألف";
+                description = "حرف الألف";
+                detectedText = "أ";
+                confidence = 0.7;
+            } else if (isBaaSign(hand)) {
+                detectedGesture = "الباء";
+                description = "حرف الباء";
+                detectedText = "ب";
+                confidence = 0.7;
+            } else if (isTaaSign(hand)) {
+                detectedGesture = "التاء";
+                description = "حرف التاء";
+                detectedText = "ت";
+                confidence = 0.7;
+            } else if (isThaaSign(hand)) {
+                detectedGesture = "الثاء";
+                description = "حرف الثاء";
+                detectedText = "ث";
+                confidence = 0.65;
+            } else if (isJeemSign(hand)) {
+                detectedGesture = "الجيم";
+                description = "حرف الجيم";
+                detectedText = "ج";
+                confidence = 0.7;
+            } else if (isHaaSign(hand)) {
+                detectedGesture = "الحاء";
+                description = "حرف الحاء";
+                detectedText = "ح";
+                confidence = 0.65;
+            } else if (isKhaaSign(hand)) {
+                detectedGesture = "الخاء";
+                description = "حرف الخاء";
+                detectedText = "خ";
+                confidence = 0.65;
+            } else if (isDalSign(hand)) {
+                detectedGesture = "الدال";
+                description = "حرف الدال";
+                detectedText = "د";
+                confidence = 0.7;
+            } else if (isThalSign(hand)) {
+                detectedGesture = "الذال";
+                description = "حرف الذال";
+                detectedText = "ذ";
+                confidence = 0.65;
+            } else if (isRaaSign(hand)) {
+                detectedGesture = "الراء";
+                description = "حرف الراء";
+                detectedText = "ر";
+                confidence = 0.7;
+            } else if (isZaySign(hand)) {
+                detectedGesture = "الزاي";
+                description = "حرف الزاي";
+                detectedText = "ز";
+                confidence = 0.65;
+            } else if (isSeenSign(hand)) {
+                detectedGesture = "السين";
+                description = "حرف السين";
+                detectedText = "س";
+                confidence = 0.7;
+            } else if (isSheenSign(hand)) {
+                detectedGesture = "الشين";
+                description = "حرف الشين";
+                detectedText = "ش";
+                confidence = 0.65;
+            } else if (isSadSign(hand)) {
+                detectedGesture = "الصاد";
+                description = "حرف الصاد";
+                detectedText = "ص";
+                confidence = 0.7;
+            } else if (isDadSign(hand)) {
+                detectedGesture = "الضاد";
+                description = "حرف الضاد";
+                detectedText = "ض";
+                confidence = 0.65;
+            } else if (isTaaMarbutaSign(hand)) {
+                detectedGesture = "الطاء";
+                description = "حرف الطاء";
+                detectedText = "ط";
+                confidence = 0.7;
+            } else if (isZaaSign(hand)) {
+                detectedGesture = "الظاء";
+                description = "حرف الظاء";
+                detectedText = "ظ";
+                confidence = 0.65;
+            } else if (isAynSign(hand)) {
+                detectedGesture = "العين";
+                description = "حرف العين";
+                detectedText = "ع";
+                confidence = 0.7;
+            } else if (isGhaynSign(hand)) {
+                detectedGesture = "الغين";
+                description = "حرف الغين";
+                detectedText = "غ";
+                confidence = 0.65;
+            } else if (isFaaSign(hand)) {
+                detectedGesture = "الفاء";
+                description = "حرف الفاء";
+                detectedText = "ف";
+                confidence = 0.7;
+            } else if (isQafSign(hand)) {
+                detectedGesture = "القاف";
+                description = "حرف القاف";
+                detectedText = "ق";
+                confidence = 0.7;
+            } else if (isKafSign(hand)) {
+                detectedGesture = "الكاف";
+                description = "حرف الكاف";
+                detectedText = "ك";
+                confidence = 0.65;
+            } else if (isLamSign(hand)) {
+                detectedGesture = "اللام";
+                description = "حرف اللام";
+                detectedText = "ل";
+                confidence = 0.7;
+            } else if (isMeemSign(hand)) {
+                detectedGesture = "الميم";
+                description = "حرف الميم";
+                detectedText = "م";
+                confidence = 0.7;
+            } else if (isNoonSign(hand)) {
+                detectedGesture = "النون";
+                description = "حرف النون";
+                detectedText = "ن";
+                confidence = 0.65;
+            } else if (isHaaEndSign(hand)) {
+                detectedGesture = "الهاء";
+                description = "حرف الهاء";
+                detectedText = "ه";
+                confidence = 0.7;
+            } else if (isWawSign(hand)) {
+                detectedGesture = "الواو";
+                description = "حرف الواو";
+                detectedText = "و";
+                confidence = 0.7;
+            } else if (isYaaSign(hand)) {
+                detectedGesture = "الياء";
+                description = "حرف الياء";
+                detectedText = "ي";
+                confidence = 0.7;
+            } else {
+                confidence = 0.3;
+            }
+
+            gestureName.textContent = detectedGesture;
+            gestureDescription.textContent = description;
+            updateConfidence(confidence);
+
+            if (!detectedText) {
+                gestureImage.style.display = 'none';
+            }
+
+            processRecognition(detectedGesture, detectedText, confidence);
+        }
+
+        function processRecognition(gesture, text, confidence) {
+            if (!text || confidence < 0.6) return;
+
+            const now = Date.now();
+            if (gesture === lastGesture && (now - lastGestureTime) < DEBOUNCE_MS) return;
+            lastGesture = gesture;
+            lastGestureTime = now;
+
+            if (text === lastAppendedText) return;
+            lastAppendedText = text;
+
+
+
+            const cleanText = normalizeArabic(text);
+            const fileName = textToImageMap[cleanText];
+            if (fileName) {
+                gestureImage.src = fileName;
+                gestureImage.alt = `إشارة ${text}`;
+                gestureImage.style.display = 'block';
+            } else {
+                gestureImage.style.display = 'none';
+            }
+        }
+
+        function normalizeArabic(text) {
+            const diacritics = /[\u0610-\u061A\u064B-\u0652\u0670]/g;
+            let t = text.replace(diacritics, '').trim();
+            t = t.replace(/\u0649/g, 'ي');
+            return t;
+        }
+
+        // ================== دوال مساعدة للإشارات ==================
+        function isHandOpen(landmarks) {
+            const fingerTips = [8, 12, 16, 20];
+            const fingerMCPs = [5, 9, 13, 17];
+
+            for (let i = 0; i < fingerTips.length; i++) {
+                const tip = landmarks[fingerTips[i]];
+                const mcp = landmarks[fingerMCPs[i]];
+
+                if (Math.abs(tip.y - mcp.y) < 0.1) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function isFist(landmarks) {
+            const fingerTips = [8, 12, 16, 20];
+            const fingerPIPs = [6, 10, 14, 18];
+
+            for (let i = 0; i < fingerTips.length; i++) {
+                const tip = landmarks[fingerTips[i]];
+                const pip = landmarks[fingerPIPs[i]];
+
+                if (tip.y < pip.y) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function isIndexFingerExtended(landmarks) {
+            const indexTip = landmarks[8];
+            const indexPIP = landmarks[6];
+            const middleTip = landmarks[12];
+            const ringTip = landmarks[16];
+            const pinkyTip = landmarks[20];
+
+            return (indexTip.y < indexPIP.y) &&
+                (middleTip.y > landmarks[10].y) &&
+                (ringTip.y > landmarks[14].y) &&
+                (pinkyTip.y > landmarks[18].y);
+        }
+
+        function isBaaSign(landmarks) {
+            const thumbTip = landmarks[4];
+            const indexTip = landmarks[8];
+            const middleTip = landmarks[12];
+            const ringTip = landmarks[16];
+            const pinkyTip = landmarks[20];
+
+            return (thumbTip.y < landmarks[3].y) &&
+                (indexTip.y < landmarks[7].y) &&
+                (middleTip.y > landmarks[11].y) &&
+                (ringTip.y > landmarks[15].y) &&
+                (pinkyTip.y > landmarks[19].y);
+        }
+
+        function isTaaSign(landmarks) {
+            const indexTip = landmarks[8];
+            const middleTip = landmarks[12];
+            const ringTip = landmarks[16];
+            const pinkyTip = landmarks[20];
+
+            return (indexTip.y < landmarks[7].y) &&
+                (middleTip.y < landmarks[11].y) &&
+                (ringTip.y > landmarks[15].y) &&
+                (pinkyTip.y > landmarks[19].y);
+        }
+
+        function isThaaSign(landmarks) {
+            const indexTip = landmarks[8];
+            const middleTip = landmarks[12];
+            const ringTip = landmarks[16];
+            const pinkyTip = landmarks[20];
+
+            return (indexTip.y < landmarks[7].y) &&
+                (middleTip.y < landmarks[11].y) &&
+                (ringTip.y < landmarks[15].y) &&
+                (pinkyTip.y > landmarks[19].y);
+        }
+
+        function isJeemSign(landmarks) {
+            const thumbTip = landmarks[4];
+            const indexTip = landmarks[8];
+            const middleTip = landmarks[12];
+            const ringTip = landmarks[16];
+            const pinkyTip = landmarks[20];
+
+            return (thumbTip.y > landmarks[3].y) &&
+                (indexTip.y > landmarks[7].y) &&
+                (middleTip.y > landmarks[11].y) &&
+                (ringTip.y > landmarks[15].y) &&
+                (pinkyTip.y < landmarks[19].y);
+        }
+
+        function isHaaSign(landmarks) {
+            const thumbTip = landmarks[4];
+            const indexTip = landmarks[8];
+            const middleTip = landmarks[12];
+            const ringTip = landmarks[16];
+            const pinkyTip = landmarks[20];
+
+            return (thumbTip.y < landmarks[3].y) &&
+                (indexTip.y < landmarks[7].y) &&
+                (middleTip.y < landmarks[11].y) &&
+                (ringTip.y < landmarks[15].y) &&
+                (pinkyTip.y < landmarks[19].y) &&
+                (Math.abs(thumbTip.x - indexTip.x) < 0.1);
+        }
+
+        function isKhaaSign(landmarks) {
+            const thumbTip = landmarks[4];
+            const indexTip = landmarks[8];
+            const middleTip = landmarks[12];
+            const ringTip = landmarks[16];
+            const pinkyTip = landmarks[20];
+
+            return (thumbTip.y < landmarks[3].y) &&
+                (indexTip.y < landmarks[7].y) &&
+                (middleTip.y < landmarks[11].y) &&
+                (ringTip.y < landmarks[15].y) &&
+                (pinkyTip.y < landmarks[19].y) &&
+                (Math.abs(thumbTip.x - indexTip.x) > 0.2);
+        }
+
+        function isDalSign(landmarks) {
+            const thumbTip = landmarks[4];
+            const indexTip = landmarks[8];
+            return (Math.abs(thumbTip.x - indexTip.x) < 0.05 &&
+                Math.abs(thumbTip.y - indexTip.y) < 0.05);
+        }
+
+        function isThalSign(landmarks) {
+            const indexTip = landmarks[8];
+            return (indexTip.y < landmarks[6].y) &&
+                (landmarks[12].y > landmarks[10].y);
+        }
+
+        function isRaaSign(landmarks) {
+            return isFist(landmarks) && (landmarks[0].y < landmarks[9].y);
+        }
+
+        function isZaySign(landmarks) {
+            const indexTip = landmarks[8];
+            const middleTip = landmarks[12];
+            return (indexTip.y < landmarks[6].y) &&
+                (middleTip.y < landmarks[10].y) &&
+                (Math.abs(indexTip.x - middleTip.x) < 0.1);
+        }
+
+        function isSeenSign(landmarks) {
+            return isFist(landmarks) && (landmarks[4].y > landmarks[3].y);
+        }
+
+        function isSheenSign(landmarks) {
+            return isHandOpen(landmarks) && (landmarks[0].y < landmarks[9].y);
+        }
+
+        function isSadSign(landmarks) {
+            return isFist(landmarks) && (landmarks[4].x < landmarks[3].x);
+        }
+
+        function isDadSign(landmarks) {
+            return isHandOpen(landmarks) && (landmarks[4].x < landmarks[3].x);
+        }
+
+        function isTaaMarbutaSign(landmarks) {
+            const thumbTip = landmarks[4];
+            const indexTip = landmarks[8];
+            return (thumbTip.y > landmarks[3].y) &&
+                (indexTip.y > landmarks[6].y) &&
+                (landmarks[12].y > landmarks[10].y);
+        }
+
+        function isZaaSign(landmarks) {
+            const thumbTip = landmarks[4];
+            const indexTip = landmarks[8];
+            return (thumbTip.y < landmarks[3].y) &&
+                (indexTip.y < landmarks[6].y) &&
+                (landmarks[12].y > landmarks[10].y);
+        }
+
+        function isAynSign(landmarks) {
+            const thumbTip = landmarks[4];
+            const indexTip = landmarks[8];
+            return (Math.abs(thumbTip.x - indexTip.x) < 0.1) &&
+                (Math.abs(thumbTip.y - indexTip.y) < 0.1);
+        }
+
+        function isGhaynSign(landmarks) {
+            const thumbTip = landmarks[4];
+            const indexTip = landmarks[8];
+            return (Math.abs(thumbTip.x - indexTip.x) < 0.15) &&
+                (Math.abs(thumbTip.y - indexTip.y) < 0.15);
+        }
+
+        function isFaaSign(landmarks) {
+            const thumbTip = landmarks[4];
+            const indexTip = landmarks[8];
+            return (Math.abs(thumbTip.x - indexTip.x) < 0.2) &&
+                (Math.abs(thumbTip.y - indexTip.y) < 0.2);
+        }
+
+        function isQafSign(landmarks) {
+            return isFist(landmarks) && (landmarks[4].y < landmarks[3].y);
+        }
+
+        function isKafSign(landmarks) {
+            const indexTip = landmarks[8];
+            const middleTip = landmarks[12];
+            return (indexTip.y < landmarks[6].y) &&
+                (middleTip.y < landmarks[10].y) &&
+                (landmarks[16].y > landmarks[14].y);
+        }
+
+        function isLamSign(landmarks) {
+            const indexTip = landmarks[8];
+            return (indexTip.y < landmarks[6].y) &&
+                (landmarks[12].y > landmarks[10].y) &&
+                (landmarks[16].y > landmarks[14].y) &&
+                (landmarks[20].y > landmarks[18].y);
+        }
+
+        function isMeemSign(landmarks) {
+            return isFist(landmarks) && (landmarks[4].x > landmarks[3].x);
+        }
+
+        function isNoonSign(landmarks) {
+            const thumbTip = landmarks[4];
+            return (thumbTip.y < landmarks[3].y) &&
+                (landmarks[8].y > landmarks[6].y);
+        }
+
+        function isHaaEndSign(landmarks) {
+            return isHandOpen(landmarks) && (landmarks[4].x > landmarks[3].x);
+        }
+
+        function isWawSign(landmarks) {
+            const thumbTip = landmarks[4];
+            const pinkyTip = landmarks[20];
+            return (Math.abs(thumbTip.x - pinkyTip.x) < 0.15) &&
+                (Math.abs(thumbTip.y - pinkyTip.y) < 0.15) &&
+                (landmarks[12].y > landmarks[10].y);
+        }
+
+        function isYaaSign(landmarks) {
+            const thumbTip = landmarks[4];
+            const pinkyTip = landmarks[20];
+            return (Math.abs(thumbTip.x - pinkyTip.x) < 0.15) &&
+                (Math.abs(thumbTip.y - pinkyTip.y) < 0.15);
+        }
+
+        // ================== تشغيل / إيقاف الكاميرا ==================
+        async function startCamera() {
+            if (isCameraOn) return;
+
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    gestureName.textContent = t('cameraUnavailable');
+                    gestureDescription.textContent = t('cameraUnsupported');
+                    updateConfidence(0);
+                    alert(t('cameraUnsupportedAlert'));
+                    return;
+                }
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: 640,
+                        height: 480
+                    }
+                });
+
+                videoElement.srcObject = stream;
+                isCameraOn = true;
+
+                camera = new Camera(videoElement, {
+                    onFrame: async () => {
+                        if (hands) {
+                            await hands.send({
+                                image: videoElement
+                            });
+                        }
+                    },
+                    width: 640,
+                    height: 480
+                });
+                camera.start();
+
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+            } catch (error) {
+                console.error("خطأ في تشغيل الكاميرا:", error);
+                gestureName.textContent = t('cameraUnavailable');
+                gestureDescription.textContent = t('cameraPermission');
+                updateConfidence(0);
+                alert(t('cameraPermissionAlert'));
+            }
+        }
+
+        function stopCamera() {
+            if (!isCameraOn) return;
+
+            if (camera) {
+                camera.stop();
+                camera = null;
+            }
+
+            const stream = videoElement.srcObject;
+            if (stream) {
+                const tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+                videoElement.srcObject = null;
+            }
+
+            isCameraOn = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+
+            gestureName.textContent = t('emptyGestureName');
+            gestureDescription.textContent = t('emptyGestureDescription');
+            updateConfidence(0);
+            gestureImage.style.display = 'none';
+        }
+
+        function resetRecognition() {
+            gestureName.textContent = t('emptyGestureName');
+            gestureDescription.textContent = t('emptyGestureDescription');
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            updateConfidence(0);
+            gestureImage.style.display = 'none';
+            lastGesture = null;
+            lastAppendedText = '';
+        }
+
+        startBtn.addEventListener('click', startCamera);
+        stopBtn.addEventListener('click', stopCamera);
+        resetBtn.addEventListener('click', resetRecognition);
+        stopBtn.disabled = true;
+
+        // ================== الحروف العربية + الكلمة الحالية ==================
+        let currentWord = "";
+        const currentWordElement = document.getElementById('currentWord');
+        const clearWordBtn = document.getElementById('clearWordBtn');
+        const speakWordBtn = document.getElementById('speakWordBtn');
+        const addSpaceBtn = document.getElementById('addSpaceBtn');
+        const lettersGrid = document.getElementById('lettersGrid');
+        const harakatGrid = document.getElementById('harakatGrid');
+
+        // خريطة النص -> صورة
+        const textToImageMap = {
+            'ا': 'ا.PNG',
+            'أ': 'أ.PNG',
+            'إ': 'ا.PNG',
+            'آ': 'ا.PNG',
+            'ب': 'ب.PNG',
+            'ت': 'ت.PNG',
+            'ث': 'ث.PNG',
+            'ج': 'ج.PNG',
+            'ح': 'ح.PNG',
+            'خ': 'خ.PNG',
+            'د': 'د.PNG',
+            'ذ': 'ذ.PNG',
+            'ر': 'ر.PNG',
+            'ز': 'ز.PNG',
+            'س': 'س.PNG',
+            'ش': 'ش.PNG',
+            'ص': 'ص.PNG',
+            'ض': 'ض.PNG',
+            'ط': 'ط.PNG',
+            'ظ': 'ظ.PNG',
+            'ع': 'ع.PNG',
+            'غ': 'غ.PNG',
+            'ف': 'ف.PNG',
+            'ق': 'ق.PNG',
+            'ك': 'ك.PNG',
+            'ل': 'ل.PNG',
+            'م': 'م.PNG',
+            'ن': 'ن.PNG',
+            'ه': 'ه.PNG',
+            'و': 'و.PNG',
+            'ي': 'ي.PNG',
+            'نعم': 'نعم.png'
+        };
+
+        function initializeArabicLetters() {
+            const arabicLetters = [
+                'ا', 'ح', 'خ', 'د', 'ذ', 'ر',
+                'ز', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف',
+                'ق', 'ك', 'ل', 'م', 'ن', 'ه', 'و', 'ي'
+            ];
+            const harakat = ['َ', 'ُ', 'ِ', 'ّ', 'ْ', 'ً', 'ٌ', 'ٍ'];
+
+            arabicLetters.forEach(letter => {
+                const letterElement = document.createElement('div');
+                letterElement.className = 'letter-card';
+                letterElement.textContent = letter;
+                letterElement.addEventListener('click', () => {
+                    addToCurrentWord(letter);
+                });
+                lettersGrid.appendChild(letterElement);
+            });
+
+            harakat.forEach(mark => {
+                const el = document.createElement('div');
+                el.className = 'letter-card';
+                el.textContent = mark;
+                el.addEventListener('click', () => {
+                    addToCurrentWord(mark);
+                });
+                harakatGrid.appendChild(el);
+            });
+
+            clearWordBtn.addEventListener('click', clearCurrentWord);
+            speakWordBtn.addEventListener('click', speakCurrentWord);
+            addSpaceBtn.addEventListener('click', addSpaceToWord);
+
+            updateCurrentWordDisplay();
+        }
+
+        function addToCurrentWord(letter) {
+            currentWord += letter;
+            updateCurrentWordDisplay();
+        }
+
+        function addSpaceToWord() {
+            currentWord += ' ';
+            updateCurrentWordDisplay();
+        }
+
+        function clearCurrentWord() {
+            currentWord = "";
+            updateCurrentWordDisplay();
+        }
+
+        function speakCurrentWord() {
+            if (currentWord.trim() !== "") {
+                speakText(currentWord);
+            }
+        }
+
+        function updateCurrentWordDisplay() {
+            if (currentWord === "") {
+                currentWordElement.textContent = t('emptyWord');
+            } else {
+                currentWordElement.textContent = currentWord;
+            }
+        }
+
+        // ================== TTS - تحويل النص إلى كلام ==================
+        let currentUtterance = null;
+        let autoSpeakEnabled = true;
+        let ttsLanguage = 'ar';
+        let arabicVoiceAvailable = false;
+        let englishVoiceAvailable = false;
+        let ttsFallbackAttempted = false;
+
+        const voiceStatus = document.getElementById('voiceStatus');
+        const textInput = document.getElementById('textInput');
+        const speakBtn = document.getElementById('speakBtn');
+        const stopSpeakBtn = document.getElementById('stopSpeakBtn');
+        const ttsArabicBtn = document.getElementById('ttsArabicBtn');
+        const ttsEnglishBtn = document.getElementById('ttsEnglishBtn');
+
+        function getPreferredVoice(language) {
+            const voices = speechSynthesis.getVoices();
+            const preferredGroups = language === 'ar' ? [
+                (voice) => voice.lang.toLowerCase() === 'ar-sa',
+                (voice) => voice.lang.toLowerCase().startsWith('ar'),
+                (voice) => voice.name.toLowerCase().includes('arabic')
+            ] : [
+                (voice) => voice.lang.toLowerCase() === 'en-us',
+                (voice) => voice.lang.toLowerCase() === 'en-gb',
+                (voice) => voice.lang.toLowerCase().startsWith('en')
+            ];
+
+            for (const matcher of preferredGroups) {
+                const matchedVoice = voices.find(matcher);
+                if (matchedVoice) return matchedVoice;
+            }
+
+            return null;
+        }
+
+        function updateLanguageButtons() {
+            ttsArabicBtn.classList.toggle('active', ttsLanguage === 'ar');
+            ttsEnglishBtn.classList.toggle('active', ttsLanguage === 'en');
+        }
+
+        function checkVoiceSupport() {
+            const arabicVoice = getPreferredVoice('ar');
+            const englishVoice = getPreferredVoice('en');
+
+            arabicVoiceAvailable = !!arabicVoice;
+            englishVoiceAvailable = !!englishVoice;
+
+            if (arabicVoiceAvailable && englishVoiceAvailable) {
+                ttsLanguage = 'ar';
+                voiceStatus.textContent = t('voiceArabicPreferred');
+            } else if (arabicVoiceAvailable) {
+                ttsLanguage = 'ar';
+                voiceStatus.textContent = t('voiceArabicAvailable');
+            } else if (englishVoiceAvailable) {
+                ttsLanguage = 'en';
+                voiceStatus.textContent = t('voiceEnglishAvailable');
+            } else {
+                voiceStatus.textContent = t('voiceNoSupport');
+            }
+
+            updateLanguageButtons();
+        }
+
+        function initializeSpeech() {
+            function loadVoices() {
+                checkVoiceSupport();
+            }
+
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = loadVoices;
+            }
+
+            loadVoices();
+            setupSpeechEventListeners();
+        }
+
+        function speakText(text) {
+            if (!text) return;
+
+            if (currentUtterance) {
+                speechSynthesis.cancel();
+            }
+
+            currentUtterance = new SpeechSynthesisUtterance(text);
+            if (ttsLanguage === 'ar' && arabicVoiceAvailable) {
+                const arabicVoice = getPreferredVoice('ar');
+                currentUtterance.lang = 'ar-SA';
+                currentUtterance.rate = 0.9;
+                if (arabicVoice) currentUtterance.voice = arabicVoice;
+            } else if (englishVoiceAvailable) {
+                const englishVoice = getPreferredVoice('en');
+                currentUtterance.lang = 'en-US';
+                currentUtterance.rate = 1.0;
+                if (englishVoice) currentUtterance.voice = englishVoice;
+                if (containsArabic(text)) {
+                    const translatedText = translateToEnglish(text);
+                    currentUtterance.text = translatedText;
+                }
+            } else {
+                alert(t('alertNoVoice'));
+                currentUtterance = null;
+                return;
+            }
+
+            currentUtterance.pitch = 1;
+            currentUtterance.volume = 1;
+
+            currentUtterance.onend = () => {
+                currentUtterance = null;
+                ttsFallbackAttempted = false;
+            };
+
+            currentUtterance.onerror = (event) => {
+                console.error('خطأ في تحويل النص إلى كلام:', event);
+                currentUtterance = null;
+                if (ttsLanguage === 'ar' && englishVoiceAvailable && !ttsFallbackAttempted) {
+                    ttsFallbackAttempted = true;
+                    switchTTSLanguage('en');
+                    speakText(text);
+                }
+            };
+
+            speechSynthesis.speak(currentUtterance);
+        }
+
+        function containsArabic(text) {
+            const arabicRegex = /[\u0600-\u06FF]/;
+            return arabicRegex.test(text);
+        }
+
+        function translateToEnglish(arabicText) {
+            const translations = {
+                'مرحباً': 'Hello',
+                'مرحبا': 'Hello',
+                'شكراً': 'Thank you',
+                'شكرا': 'Thank you',
+                'نعم': 'Yes',
+                'أوافق': 'I agree',
+                'أرفض': 'I refuse',
+                'مساعدة': 'Help',
+                'أ': 'A',
+                'ب': 'B',
+                'ت': 'T',
+                'ث': 'Th',
+                'ج': 'J',
+                'ح': 'H',
+                'خ': 'Kh',
+                'د': 'D',
+                'ذ': 'Th',
+                'ر': 'R',
+                'ز': 'Z',
+                'س': 'S',
+                'ش': 'Sh',
+                'ص': 'S',
+                'ض': 'D',
+                'ط': 'T',
+                'ظ': 'Z',
+                'ع': 'A',
+                'غ': 'Gh',
+                'ف': 'F',
+                'ق': 'Q',
+                'ك': 'K',
+                'ل': 'L',
+                'م': 'M',
+                'ن': 'N',
+                'ه': 'H',
+                'و': 'W',
+                'ي': 'Y'
+            };
+            if (translations[arabicText]) return translations[arabicText];
+            return arabicText;
+        }
+
+        function stopSpeech() {
+            if (speechSynthesis.speaking) {
+                speechSynthesis.cancel();
+                currentUtterance = null;
+            }
+        }
+
+        function setupSpeechEventListeners() {
+            speakBtn.addEventListener('click', () => {
+                speakText(textInput.value);
+            });
+
+            stopSpeakBtn.addEventListener('click', stopSpeech);
+
+            textInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    speakText(textInput.value);
+                }
+            });
+        }
+
+        function setupTTSLanguageControls() {
+            ttsArabicBtn.addEventListener('click', () => {
+                if (arabicVoiceAvailable) {
+                    switchTTSLanguage('ar');
+                } else {
+                    alert(t('alertArabicUnavailable'));
+                }
+            });
+            ttsEnglishBtn.addEventListener('click', () => {
+                if (englishVoiceAvailable) {
+                    switchTTSLanguage('en');
+                } else {
+                    alert(t('alertEnglishUnavailable'));
+                }
+            });
+        }
+
+        function switchTTSLanguage(lang) {
+            ttsLanguage = lang;
+            if (lang === 'ar') {
+                ttsArabicBtn.classList.add('active');
+                ttsEnglishBtn.classList.remove('active');
+            } else {
+                ttsArabicBtn.classList.remove('active');
+                ttsEnglishBtn.classList.add('active');
+            }
+        }
+
+        // ================== عند تحميل الصفحة ==================
+        window.addEventListener('load', () => {
+            applyTheme(getPlatformTheme());
+            applyPlatformLanguage(getPlatformLanguage());
+            initializeHands();
+            initializeArabicLetters();
+            initializeSpeech();
+            setupTTSLanguageControls();
+        });
+    </script>
+</body>
+
+</html>

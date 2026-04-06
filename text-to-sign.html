@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة التواصل للصم والبكم - تحويل النص إلى إشارة</title>
+    <style>
+        :root {
+            --primary: #1500e0;
+            --secondary: #4390e0;
+            --accent: #f9ff00;
+            --background: #ffffff;
+            --light-gray: #f2f4f7;
+            --text: #1f2937;
+            --muted: #5d6b7b;
+            --heading: #2340b8;
+            --danger: #c53d5c;
+            --card-bg: #ffffff;
+            --card-border: rgba(67, 144, 224, 0.18);
+            --shadow: 0 16px 36px rgba(21, 0, 224, 0.08);
+            --panel-soft: #f2f7fd;
+            --button-bg: #1500e0;
+            --button-bg-hover: #1000b0;
+            --button-text: #ffffff;
+            --secondary-soft: rgba(67, 144, 224, 0.12);
+            --surface: #ffffff;
+            --surface-soft: #f8fbff;
+        }
+
+        body[data-theme="dark"] {
+            --background: #0d1524;
+            --light-gray: #162033;
+            --text: #e7eef8;
+            --muted: #b3bfd3;
+            --heading: #a9bcff;
+            --danger: #ff9ab0;
+            --card-bg: #121c2d;
+            --card-border: rgba(111, 146, 199, 0.22);
+            --shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
+            --panel-soft: #172335;
+            --button-bg: #5b78d6;
+            --button-bg-hover: #6a86de;
+            --button-text: #ffffff;
+            --secondary-soft: rgba(103, 148, 216, 0.18);
+            --surface: #162235;
+            --surface-soft: #101a2b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--background);
+            color: var(--text);
+        }
+
+        body.ltr {
+            direction: ltr;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        .app-shell {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 290px;
+            background: var(--background);
+            border-left: 1px solid var(--card-border);
+            padding: 28px 22px;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            z-index: 1000;
+            transform: translateX(0);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar.closed {
+            transform: translateX(100%);
+        }
+
+        .sidebar-brand {
+            padding-bottom: 22px;
+            border-bottom: 1px solid var(--card-border);
+            margin-bottom: 22px;
+        }
+
+        .sidebar-brand h2 {
+            font-size: 1.35rem;
+            margin-bottom: 8px;
+            color: var(--heading);
+        }
+
+        .sidebar-brand p {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .sidebar-links {
+            display: grid;
+            gap: 12px;
+        }
+
+        .sidebar-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 14px 16px;
+            border: 1px solid transparent;
+            border-radius: 16px;
+            background: var(--light-gray);
+            font-weight: 600;
+            transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .sidebar-link:hover,
+        .sidebar-link.active {
+            background: var(--secondary-soft);
+            border-color: rgba(67, 144, 224, 0.3);
+            transform: translateX(-4px);
+        }
+
+        .sidebar-note {
+            margin-top: 24px;
+            padding: 16px;
+            border-radius: 16px;
+            background: var(--panel-soft);
+            border: 1px solid var(--card-border);
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .sidebar-controls {
+            display: grid;
+            gap: 14px;
+            margin-top: 18px;
+        }
+
+        .settings-group {
+            display: grid;
+            gap: 8px;
+        }
+
+        .setting-label {
+            font-size: 0.92rem;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .settings-select,
+        .theme-toggle {
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid var(--card-border);
+            background: var(--surface);
+            color: var(--text);
+            padding: 12px 14px;
+            font-size: 0.95rem;
+        }
+
+        .theme-toggle {
+            cursor: pointer;
+            font-weight: 700;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: translateY(-2px);
+            background: var(--secondary-soft);
+        }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(31, 41, 55, 0.28);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 999;
+        }
+
+        .overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .page {
+            flex: 1;
+            width: 100%;
+            padding: 24px;
+            padding-right: 330px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 22px;
+            box-shadow: var(--shadow);
+        }
+
+        .topbar {
+            max-width: 1280px;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 18px;
+        }
+
+        .menu-btn {
+            border: 2px solid transparent;
+            background: var(--button-bg);
+            color: var(--button-text);
+            border-radius: 16px;
+            padding: 13px 22px;
+            cursor: pointer;
+            box-shadow: 0 12px 24px rgba(21, 0, 224, 0.18);
+            font-weight: 700;
+        }
+
+        .topbar-text h1 {
+            font-size: 1.2rem;
+            margin-bottom: 4px;
+            color: var(--heading);
+        }
+
+        .topbar-text p,
+        .page-intro p,
+        .panel-subtitle,
+        .voice-status {
+            color: var(--muted);
+        }
+
+        .main-grid {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            gap: 20px;
+        }
+
+        .page-intro {
+            padding: 28px;
+            display: grid;
+            grid-template-columns: 1.6fr 1fr;
+            gap: 18px;
+            background: linear-gradient(135deg, #ffffff 0%, #f4f8ff 72%, #eef5ff 100%);
+        }
+
+        .page-intro h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: var(--heading);
+        }
+
+        .quick-stats {
+            display: grid;
+            gap: 12px;
+        }
+
+        .quick-box {
+            padding: 16px;
+            border-radius: 18px;
+            background: var(--surface);
+            border: 1px solid var(--card-border);
+        }
+
+        .quick-box strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 1.1rem;
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            padding: 22px;
+        }
+
+        .panel-title {
+            font-size: 1.35rem;
+            margin-bottom: 6px;
+            color: var(--heading);
+        }
+
+        .panel-subtitle {
+            margin-bottom: 18px;
+        }
+
+        .text-to-sign-controls,
+        .word-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .text-to-sign-controls {
+            margin-top: 16px;
+        }
+
+        .sign-input {
+            flex: 1;
+            min-width: 220px;
+            padding: 12px 14px;
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        .btn {
+            padding: 12px 18px;
+            border-radius: 16px;
+            border: 1px solid transparent;
+            background: var(--button-bg);
+            color: var(--button-text);
+            cursor: pointer;
+            transition: transform 0.2s ease, background 0.2s ease;
+            flex: 1;
+            min-width: 130px;
+            font-weight: 700;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            background: var(--button-bg-hover);
+        }
+
+        .btn-convert {
+            background: var(--primary);
+        }
+
+        .btn-speak {
+            background: var(--secondary);
+        }
+
+        .btn-stop {
+            background: #356fb0;
+        }
+
+        .btn-reset,
+        .btn-tts-language {
+            background: var(--surface);
+            color: var(--text);
+            border-color: var(--card-border);
+        }
+
+        .btn-tts-language.active {
+            background: var(--accent);
+            box-shadow: none;
+        }
+
+        .sign-output,
+        .word-builder {
+            background: var(--surface-soft);
+            border: 1px solid var(--card-border);
+            border-radius: 18px;
+        }
+
+        .sign-output {
+            min-height: 340px;
+            padding: 18px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .sign-sequence {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .sign-item {
+            text-align: center;
+        }
+
+        .sign-char {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .sign-image {
+            max-width: 120px;
+            max-height: 120px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .support-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+        }
+
+        .word-builder {
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .current-word {
+            min-height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 2rem;
+            color: var(--heading);
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+
+        .inline-error {
+            color: var(--danger);
+            text-align: center;
+            width: 100%;
+        }
+
+
+
+        @media (max-width: 1024px) {
+            .page {
+                padding-right: 24px;
+            }
+
+            .sidebar {
+                transform: translateX(100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .page-intro,
+            .workspace,
+            .support-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .page {
+                padding: 16px;
+            }
+
+            .topbar,
+            .page-intro,
+            .panel {
+                padding: 18px;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-shell">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <h2 data-i18n="brandTitle">منصة التواصل</h2>
+                <p data-i18n="brandText">وصول سريع للخدمات والإعدادات.</p>
+            </div>
+            <nav class="sidebar-links">
+                <a href="index.html" class="sidebar-link" data-i18n="navHome">الرئيسية</a>
+                <a href="camera.html" class="sidebar-link" data-i18n="navCamera">التعرف على الإشارات</a>
+                <a href="text-to-sign.html" class="sidebar-link active" data-i18n="navTextSign">النص إلى إشارة</a>
+                <a href="text%20to%20sound.html" class="sidebar-link" data-i18n="navTextSpeech">النص إلى كلام</a>
+            </nav>
+            <div class="sidebar-controls">
+                <div class="settings-group">
+                    <label class="setting-label" for="platformLanguageSelect" data-i18n="languageLabel">لغة
+                        المنصة</label>
+                    <select id="platformLanguageSelect" class="settings-select">
+                        <option value="ar">العربية</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+                <div class="settings-group">
+                    <span class="setting-label" data-i18n="themeLabel">المظهر</span>
+                    <button class="theme-toggle" id="themeToggle" type="button"></button>
+                </div>
+            </div>
+            <div class="sidebar-note">
+                <span data-i18n="sidebarNote">حوّل النص أو ابنِ الكلمة بسهولة.</span>
+            </div>
+        </aside>
+
+        <div class="overlay" id="overlay"></div>
+
+        <main class="page">
+            <div class="topbar card">
+                <button class="menu-btn" id="menuToggle" type="button" data-i18n="menuBtn">القائمة</button>
+                <div class="topbar-text">
+                    <h1 data-i18n="pageTitle">تحويل النص إلى إشارة</h1>
+                    <p data-i18n="pageIntro">أدخل النص وشاهد الإشارة مباشرة.</p>
+                </div>
+            </div>
+
+            <div class="main-grid">
+                <section class="card page-intro">
+                    <div>
+                        <h2 data-i18n="introTitle">حوّل النص مباشرة إلى صور لغة الإشارة</h2>
+                        <p data-i18n="introText">اكتب النص وستظهر الصور المدعومة مباشرة.</p>
+                    </div>
+                    <div class="quick-stats">
+                        <div class="quick-box">
+                            <strong data-i18n="quickOneTitle">التحويل</strong>
+                            <span data-i18n="quickOneText">كلمة كاملة أو حروف متتابعة.</span>
+                        </div>
+                        <div class="quick-box">
+                            <strong data-i18n="quickTwoTitle">المساعدة</strong>
+                            <span data-i18n="quickTwoText">بناء كلمة بالحروف المدعومة.</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="workspace">
+                    <div class="card panel text-to-sign-section">
+                        <h2 class="panel-title" data-i18n="convertPanelTitle">منطقة التحويل</h2>
+                        <p class="panel-subtitle" data-i18n="convertPanelText">أدخل النص الذي تريد تحويله.</p>
+                        <div class="text-to-sign-controls">
+                            <input type="text" id="signTextInput" class="sign-input"
+                                data-i18n-placeholder="signPlaceholder" placeholder="أدخل النص لتحويله إلى إشارة...">
+                            <button id="convertToSignBtn" class="btn btn-convert" type="button"
+                                data-i18n="convertBtn">تحويل إلى إشارة</button>
+                        </div>
+                        <div id="signOutput" class="sign-output">
+                            <p id="signOutputHint" style="text-align:center; width:100%;" data-i18n="signOutputHint">
+                                ستظهر الإشارات هنا</p>
+                        </div>
+                    </div>
+
+                </section>
+
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const menuToggle = document.getElementById('menuToggle');
+        const themeToggle = document.getElementById('themeToggle');
+        const platformLanguageSelect = document.getElementById('platformLanguageSelect');
+        const signOutputHint = document.getElementById('signOutputHint');
+
+        const uiTranslations = {
+            ar: {
+                documentTitle: 'منصة التواصل للصم والبكم - تحويل النص إلى إشارة',
+                brandTitle: 'منصة التواصل',
+                brandText: 'وصول سريع للخدمات والإعدادات.',
+                navHome: 'الرئيسية',
+                navCamera: 'التعرف على الإشارات',
+                navTextSign: 'النص إلى إشارة',
+                navTextSpeech: 'النص إلى كلام',
+                languageLabel: 'لغة المنصة',
+                themeLabel: 'المظهر',
+                sidebarNote: 'حوّل النص أو ابنِ الكلمة بسهولة.',
+                menuBtn: 'القائمة',
+                pageTitle: 'تحويل النص إلى إشارة',
+                pageIntro: 'أدخل النص وشاهد الإشارة مباشرة.',
+                introTitle: 'حوّل النص مباشرة إلى صور لغة الإشارة',
+                introText: 'اكتب النص وستظهر الصور المدعومة مباشرة.',
+                quickOneTitle: 'التحويل',
+                quickOneText: 'كلمة كاملة أو حروف متتابعة.',
+                quickTwoTitle: 'المساعدة',
+                quickTwoText: 'بناء كلمة بالحروف المدعومة.',
+                convertPanelTitle: 'منطقة التحويل',
+                convertPanelText: 'أدخل النص الذي تريد تحويله.',
+                signPlaceholder: 'أدخل النص لتحويله إلى إشارة...',
+                convertBtn: 'تحويل إلى إشارة',
+                signOutputHint: 'ستظهر الإشارات هنا',
+                lettersPanelTitle: 'الحروف العربية بلغة الإشارة',
+                lettersPanelText: 'انقر على أي حرف لإضافته إلى الكلمة الحالية.',
+                clearWordBtn: 'مسح الكلمة',
+                addSpaceBtn: 'إضافة مسافة',
+                emptyWord: '...',
+                alertEnterText: 'يرجى إدخال نص أولاً',
+                missingLettersPrefix: 'لا توجد صور لبعض الحروف:',
+                noSupportedText: 'النص المدخل لا يحتوي على كلمات أو حروف مدعومة',
+                signImageError: 'تعذر تحميل صورة الإشارة لـ',
+                signImageErrorEnd: 'تأكد من وجود الملف في نفس مجلد الصفحة',
+                themeToDark: 'تفعيل الوضع الداكن',
+                themeToLight: 'تفعيل الوضع الفاتح'
+            },
+            en: {
+                documentTitle: 'Communication Platform - Text to Sign',
+                brandTitle: 'Communication Platform',
+                brandText: 'Quick access to services and settings.',
+                navHome: 'Home',
+                navCamera: 'Sign Recognition',
+                navTextSign: 'Text to Sign',
+                navTextSpeech: 'Text to Speech',
+                languageLabel: 'Platform Language',
+                themeLabel: 'Appearance',
+                sidebarNote: 'Convert text or build a word easily.',
+                menuBtn: 'Menu',
+                pageTitle: 'Text to Sign',
+                pageIntro: 'Enter text and view the sign directly.',
+                introTitle: 'Convert text directly to sign images',
+                introText: 'Type text and supported images appear right away.',
+                quickOneTitle: 'Conversion',
+                quickOneText: 'A full word or a sequence of letters.',
+                quickTwoTitle: 'Support',
+                quickTwoText: 'Build a word using supported letters.',
+                convertPanelTitle: 'Conversion Area',
+                convertPanelText: 'Enter the text you want to convert.',
+                signPlaceholder: 'Enter text to convert to sign...',
+                convertBtn: 'Convert to Sign',
+                signOutputHint: 'Signs will appear here',
+                lettersPanelTitle: 'Arabic Sign Letters',
+                lettersPanelText: 'Click any letter to add it to the current word.',
+                clearWordBtn: 'Clear Word',
+                addSpaceBtn: 'Add Space',
+                emptyWord: '...',
+                alertEnterText: 'Please enter text first',
+                missingLettersPrefix: 'No images for some letters:',
+                noSupportedText: 'The entered text has no supported words or letters',
+                signImageError: 'Could not load the sign image for',
+                signImageErrorEnd: 'make sure the file exists in the same folder',
+                themeToDark: 'Enable Dark Mode',
+                themeToLight: 'Enable Light Mode'
+            }
+        };
+
+        function setSidebarState(open) {
+            if (window.innerWidth <= 1024) {
+                sidebar.classList.toggle('open', open);
+            } else {
+                sidebar.classList.toggle('closed', !open);
+            }
+            overlay.classList.toggle('visible', open && window.innerWidth <= 1024);
+        }
+
+        menuToggle.addEventListener('click', () => {
+            const isMobile = window.innerWidth <= 1024;
+            const open = isMobile ? !sidebar.classList.contains('open') : sidebar.classList.contains('closed');
+            setSidebarState(open);
+        });
+
+        overlay.addEventListener('click', () => setSidebarState(false));
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 1024) {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('visible');
+            }
+        });
+
+        function getPlatformLanguage() {
+            return localStorage.getItem('platform-language') || 'ar';
+        }
+
+        function getPlatformTheme() {
+            return localStorage.getItem('platform-theme') || 'light';
+        }
+
+        function t(key) {
+            const lang = getPlatformLanguage();
+            return (uiTranslations[lang] && uiTranslations[lang][key]) || uiTranslations.ar[key] || key;
+        }
+
+        function updateThemeButton() {
+            themeToggle.textContent = getPlatformTheme() === 'dark' ? t('themeToLight') : t('themeToDark');
+        }
+
+        function applyPlatformLanguage(lang) {
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+            document.body.classList.toggle('ltr', lang === 'en');
+            localStorage.setItem('platform-language', lang);
+            document.title = t('documentTitle');
+            platformLanguageSelect.value = lang;
+            document.querySelectorAll('[data-i18n]').forEach((element) => {
+                element.textContent = t(element.dataset.i18n);
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach((element) => {
+                element.placeholder = t(element.dataset.i18nPlaceholder);
+            });
+
+            if (signOutput.children.length === 1 && signOutput.firstElementChild && signOutput.firstElementChild.id === 'signOutputHint') {
+                signOutputHint.textContent = t('signOutputHint');
+            }
+            updateThemeButton();
+        }
+
+        function applyTheme(theme) {
+            document.body.dataset.theme = theme;
+            localStorage.setItem('platform-theme', theme);
+            updateThemeButton();
+        }
+
+        platformLanguageSelect.addEventListener('change', (event) => {
+            applyPlatformLanguage(event.target.value);
+        });
+
+        themeToggle.addEventListener('click', () => {
+            const nextTheme = getPlatformTheme() === 'dark' ? 'light' : 'dark';
+            applyTheme(nextTheme);
+        });
+
+        const signTextInput = document.getElementById('signTextInput');
+        const convertToSignBtn = document.getElementById('convertToSignBtn');
+        const signOutput = document.getElementById('signOutput');
+
+        const textToImageMap = {
+            'شكرا': 'شكرا.png',
+            'شكراً': 'شكرا.png',
+            'مرحبا': 'hello.png',
+            'احبك': 'I Love You.jpg',
+            'I love you': 'I Love You.jpg',
+            'نعم': 'نعم.png',
+            'مساعدة': 'مساعدة.png',
+            'أوافق': 'أوافق.png',
+            'أرفض': 'أرفض.png',
+
+            'ا': 'ا.PNG',
+            'أ': 'أ.PNG',
+            'إ': 'ا.PNG',
+            'آ': 'ا.PNG',
+            'ب': 'ب.PNG',
+            'ت': 'ت.PNG',
+            'ث': 'ث.PNG',
+            'ج': 'ج.PNG',
+            'ح': 'ح.PNG',
+            'خ': 'خ.PNG',
+            'د': 'د.PNG',
+            'ذ': 'ذ.PNG',
+            'ر': 'ر.PNG',
+            'ز': 'ز.PNG',
+            'س': 'س.PNG',
+            'ش': 'ش.PNG',
+            'ص': 'ص.PNG',
+            'ض': 'ض.PNG',
+            'ط': 'ط.PNG',
+            'ظ': 'ظ.PNG',
+            'ع': 'ع.PNG',
+            'غ': 'غ.PNG',
+            'ف': 'ف.PNG',
+            'ق': 'ق.PNG',
+            'ك': 'ك.PNG',
+            'ل': 'ل.PNG',
+            'م': 'م.PNG',
+            'ن': 'ن.PNG',
+            'ه': 'ه.PNG',
+            'و': 'و.PNG',
+            'ي': 'ي.PNG',
+            'ى': 'ي.PNG'
+        };
+
+        window.addEventListener('load', () => {
+            setupTextToSign();
+        });
+
+
+
+
+
+        function setupTextToSign() {
+            convertToSignBtn.addEventListener('click', textToSign);
+
+            signTextInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    textToSign();
+                }
+            });
+        }
+
+        function textToSign() {
+            const text = signTextInput.value.trim();
+
+            if (!text) {
+                alert(t('alertEnterText'));
+                return;
+            }
+
+            const cleanText = normalizeArabic(text);
+
+            if (textToImageMap[cleanText]) {
+                displaySignImage(cleanText);
+            } else {
+                const characters = cleanText.split('');
+                const supportedChars = [];
+                const missingChars = [];
+
+                for (const char of characters) {
+                    if (textToImageMap[char] && char !== ' ') {
+                        supportedChars.push(char);
+                    } else if (char !== ' ') {
+                        missingChars.push(char);
+                    }
+                }
+
+                if (supportedChars.length > 0) {
+                    displaySignSequence(supportedChars);
+                    if (missingChars.length > 0) {
+                        const msg = `${t('missingLettersPrefix')} ${missingChars.join(' ')}`;
+                        signOutput.innerHTML += `<p class="inline-error">${msg}</p>`;
+                    }
+                } else {
+                    alert(t('noSupportedText'));
+                    signOutput.innerHTML = `<p class="inline-error">${t('noSupportedText')}</p>`;
+                }
+            }
+        }
+
+        function displaySignImage(word) {
+            const fileName = textToImageMap[word];
+            const imagePath = `${fileName}`;
+
+            signOutput.innerHTML = `
+            <div class="sign-item">
+                <div class="sign-char">${word}</div>
+                <img src="${imagePath}" alt="إشارة ${word}" class="sign-image" onerror="handleSignImageError('${word}')">
+                <div style="font-size: 0.9rem; margin-top: 5px;">${fileName}</div>
+            </div>
+        `;
+        }
+
+        function displaySignSequence(characters) {
+            let html = '<div class="sign-sequence">';
+
+            for (const char of characters) {
+                const fileName = textToImageMap[char];
+                const imagePath = `${fileName}`;
+                html += `
+                <div class="sign-item">
+                    <div class="sign-char">${char}</div>
+                    <img src="${imagePath}" alt="إشارة ${char}" class="sign-image" onerror="handleSignImageError('${char}')">
+                    <div style="font-size: 0.8rem; margin-top: 3px;">${fileName}</div>
+                </div>
+            `;
+            }
+
+            html += '</div>';
+            signOutput.innerHTML = html;
+        }
+
+        function handleSignImageError(word) {
+            console.error(`تعذر تحميل صورة الإشارة لكلمة: ${word}`);
+            signOutput.innerHTML += `<p class="inline-error">${t('signImageError')} "${word}" - ${t('signImageErrorEnd')}</p>`;
+        }
+
+        function normalizeArabic(text) {
+            const diacritics = /[\u0610-\u061A\u064B-\u0652\u0670]/g;
+            let t = text.replace(diacritics, '').trim();
+            t = t.replace(/\u0649/g, 'ي');
+            return t;
+        }
+
+        applyTheme(getPlatformTheme());
+        applyPlatformLanguage(getPlatformLanguage());
+    </script>
+</body>
+
+</html>

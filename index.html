@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة التواصل للصم والبكم - الرئيسية</title>
+    <style>
+        :root {
+            --primary: #1500e0;
+            --secondary: #4390e0;
+            --accent: #f9ff00;
+            --background: #ffffff;
+            --light-gray: #f2f4f7;
+            --text: #1f2937;
+            --muted: #5d6b7b;
+            --heading: #2340b8;
+            --card-bg: #ffffff;
+            --card-border: rgba(67, 144, 224, 0.18);
+            --shadow: 0 16px 36px rgba(21, 0, 224, 0.08);
+            --panel-soft: #f2f7fd;
+            --button-bg: #1500e0;
+            --button-bg-hover: #1000b0;
+            --button-text: #ffffff;
+            --secondary-soft: rgba(67, 144, 224, 0.12);
+            --surface: #ffffff;
+            --surface-soft: #f8fbff;
+        }
+
+        body[data-theme="dark"] {
+            --background: #0d1524;
+            --light-gray: #162033;
+            --text: #e7eef8;
+            --muted: #b3bfd3;
+            --heading: #a9bcff;
+            --card-bg: #121c2d;
+            --card-border: rgba(111, 146, 199, 0.22);
+            --shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
+            --panel-soft: #172335;
+            --button-bg: #5b78d6;
+            --button-bg-hover: #6a86de;
+            --button-text: #ffffff;
+            --secondary-soft: rgba(103, 148, 216, 0.18);
+            --surface: #162235;
+            --surface-soft: #101a2b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--background);
+            color: var(--text);
+        }
+
+        body.ltr {
+            direction: ltr;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .app-shell {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 290px;
+            background: var(--background);
+            border-left: 1px solid var(--card-border);
+            padding: 28px 22px;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            z-index: 1000;
+            transform: translateX(0);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar.closed {
+            transform: translateX(100%);
+        }
+
+        .sidebar-brand {
+            padding-bottom: 22px;
+            border-bottom: 1px solid var(--card-border);
+            margin-bottom: 22px;
+        }
+
+        .sidebar-brand h2 {
+            font-size: 1.35rem;
+            margin-bottom: 8px;
+            color: var(--heading);
+        }
+
+        .sidebar-brand p {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .sidebar-links {
+            display: grid;
+            gap: 12px;
+        }
+
+        .sidebar-link {
+            padding: 14px 16px;
+            border: 1px solid transparent;
+            border-radius: 16px;
+            background: var(--light-gray);
+            font-weight: 600;
+            transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .sidebar-link:hover,
+        .sidebar-link.active {
+            background: var(--secondary-soft);
+            border-color: rgba(67, 144, 224, 0.3);
+            transform: translateX(-4px);
+        }
+
+        .sidebar-note {
+            margin-top: 24px;
+            padding: 16px;
+            border-radius: 16px;
+            background: var(--panel-soft);
+            border: 1px solid var(--card-border);
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .sidebar-controls {
+            display: grid;
+            gap: 14px;
+            margin-top: 18px;
+        }
+
+        .settings-group {
+            display: grid;
+            gap: 8px;
+        }
+
+        .setting-label {
+            font-size: 0.92rem;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .settings-select,
+        .theme-toggle {
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid var(--card-border);
+            background: var(--surface);
+            color: var(--text);
+            padding: 12px 14px;
+            font-size: 0.95rem;
+        }
+
+        .theme-toggle {
+            cursor: pointer;
+            font-weight: 700;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: translateY(-2px);
+            background: var(--secondary-soft);
+        }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(31, 41, 55, 0.28);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 999;
+        }
+
+        .overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .page {
+            flex: 1;
+            width: 100%;
+            padding: 24px;
+            padding-right: 330px;
+        }
+
+        .topbar {
+            max-width: 1200px;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 22px;
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+        }
+
+        .menu-btn {
+            border: 2px solid transparent;
+            background: var(--button-bg);
+            color: var(--button-text);
+            border-radius: 16px;
+            padding: 13px 22px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 700;
+            box-shadow: 0 12px 24px rgba(21, 0, 224, 0.18);
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .menu-btn:hover {
+            transform: translateY(-2px);
+            background: var(--button-bg-hover);
+        }
+
+        .topbar-text h1 {
+            font-size: 1.2rem;
+            margin-bottom: 4px;
+            color: var(--heading);
+        }
+
+        .topbar-text p {
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .main-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            gap: 24px;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1.6fr 1fr;
+            gap: 24px;
+            align-items: stretch;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .hero-content {
+            padding: 34px;
+            background: linear-gradient(135deg, #ffffff 0%, #f4f8ff 72%, #eef5ff 100%);
+        }
+
+        .hero-content h2 {
+            font-size: 2.6rem;
+            line-height: 1.3;
+            margin-bottom: 14px;
+            color: var(--heading);
+        }
+
+        .hero-content p {
+            color: var(--muted);
+            font-size: 1.05rem;
+            margin-bottom: 26px;
+            max-width: 700px;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 15px 24px;
+            border-radius: 16px;
+            border: 2px solid transparent;
+            background: var(--button-bg);
+            color: var(--button-text);
+            font-weight: 600;
+            box-shadow: 0 10px 24px rgba(21, 0, 224, 0.18);
+            transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            background: var(--button-bg-hover);
+            box-shadow: 0 14px 26px rgba(21, 0, 224, 0.22);
+        }
+
+        .hero-side {
+            padding: 28px;
+            display: grid;
+            gap: 16px;
+            background: linear-gradient(180deg, #f7fbff 0%, #edf5ff 100%);
+        }
+
+        body[data-theme="dark"] .hero-content,
+        body[data-theme="dark"] .hero-side {
+            background: var(--surface-soft);
+        }
+
+        .stat-box {
+            padding: 18px;
+            border-radius: 18px;
+            background: var(--background);
+            border: 1px solid var(--card-border);
+        }
+
+        .stat-box strong {
+            display: block;
+            font-size: 1.7rem;
+            margin-bottom: 6px;
+            color: var(--heading);
+        }
+
+        .stat-box span {
+            color: var(--muted);
+        }
+
+        .section {
+            padding: 28px;
+        }
+
+        .section h3 {
+            font-size: 1.55rem;
+            margin-bottom: 10px;
+            color: var(--heading);
+        }
+
+        .section p {
+            color: var(--muted);
+        }
+
+        .services {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .service-card {
+            padding: 24px;
+            border-radius: 20px;
+            background: var(--surface);
+            border: 1px solid var(--card-border);
+            display: grid;
+            gap: 12px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .service-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(67, 144, 224, 0.35);
+            box-shadow: 0 16px 30px rgba(67, 144, 224, 0.14);
+        }
+
+        .service-card h4 {
+            font-size: 1.2rem;
+            color: var(--text);
+        }
+
+        .service-card p {
+            color: var(--muted);
+            min-height: 72px;
+        }
+
+        .service-card a {
+            width: fit-content;
+            padding: 12px 20px;
+            border-radius: 16px;
+            background: var(--accent);
+            border: 1px solid rgba(31, 41, 55, 0.08);
+            color: var(--text);
+            font-weight: 700;
+        }
+
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .step {
+            padding: 20px;
+            border-radius: 18px;
+            background: var(--light-gray);
+            border: 1px solid rgba(67, 144, 224, 0.14);
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #ffffff;
+            margin-bottom: 14px;
+            font-weight: 700;
+            box-shadow: 0 8px 18px rgba(21, 0, 224, 0.18);
+        }
+
+        .step h4 {
+            margin-bottom: 8px;
+            color: var(--heading);
+        }
+
+        .footer {
+            max-width: 1200px;
+            margin: 24px auto 0;
+            padding: 18px 0;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        @media (max-width: 1024px) {
+            .page {
+                padding-right: 24px;
+            }
+
+            .sidebar {
+                transform: translateX(100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .hero,
+            .services,
+            .steps {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .page {
+                padding: 16px;
+            }
+
+            .topbar,
+            .hero-content,
+            .hero-side,
+            .section {
+                padding: 20px;
+            }
+
+            .hero-content h2 {
+                font-size: 2rem;
+            }
+
+            .hero-actions {
+                flex-direction: column;
+            }
+
+            .action-btn,
+            .service-card a {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <h2 data-i18n="brandTitle">منصة التواصل</h2>
+                <p data-i18n="brandText">تنقل سريع وواضح بين الخدمات.</p>
+            </div>
+            <nav class="sidebar-links">
+                <a href="index.html" class="sidebar-link active" data-i18n="navHome">الرئيسية</a>
+                <a href="camera.html" class="sidebar-link" data-i18n="navCamera">التعرف على الإشارات</a>
+                <a href="text-to-sign.html" class="sidebar-link" data-i18n="navTextSign">النص إلى إشارة</a>
+                <a href="text%20to%20sound.html" class="sidebar-link" data-i18n="navTextSpeech">النص إلى كلام</a>
+            </nav>
+            <div class="sidebar-controls">
+                <div class="settings-group">
+                    <label class="setting-label" for="platformLanguageSelect" data-i18n="languageLabel">لغة المنصة</label>
+                    <select id="platformLanguageSelect" class="settings-select">
+                        <option value="ar">العربية</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+                <div class="settings-group">
+                    <span class="setting-label" data-i18n="themeLabel">المظهر</span>
+                    <button class="theme-toggle" id="themeToggle" type="button"></button>
+                </div>
+            </div>
+            <div class="sidebar-note">
+                <span data-i18n="sidebarNote">واجهة مختصرة بدون عناصر مكررة.</span>
+            </div>
+        </aside>
+
+        <div class="overlay" id="overlay"></div>
+
+        <main class="page">
+            <div class="topbar card">
+                <button class="menu-btn" id="menuToggle" type="button" data-i18n="menuBtn">القائمة</button>
+                <div class="topbar-text">
+                    <h1 data-i18n="pageTitle">الصفحة الرئيسية</h1>
+                    <p data-i18n="pageIntro">كل الخدمات في مكان واحد.</p>
+                </div>
+            </div>
+
+            <div class="main-grid">
+                <section class="hero">
+                    <div class="card hero-content">
+                        <h2 data-i18n="heroTitle">منصة تساعد على تسهيل التواصل باستخدام لغة الإشارة</h2>
+                        <p data-i18n="heroText">اختر الخدمة التي تحتاجها وابدأ مباشرة.</p>
+                        <div class="hero-actions">
+                            <a href="camera.html" class="action-btn" data-i18n="heroBtnCamera">ابدأ التعرف</a>
+                            <a href="text-to-sign.html" class="action-btn" data-i18n="heroBtnSign">حوّل النص</a>
+                            <a href="text%20to%20sound.html" class="action-btn" data-i18n="heroBtnSpeech">شغّل النطق</a>
+                        </div>
+                    </div>
+
+                    <div class="card hero-side">
+                        <div class="stat-box">
+                            <strong>3</strong>
+                            <span data-i18n="statOne">خدمات رئيسية</span>
+                        </div>
+                        <div class="stat-box">
+                            <strong>1</strong>
+                            <span data-i18n="statTwo">قائمة جانبية موحدة</span>
+                        </div>
+                        <div class="stat-box">
+                            <strong data-i18n="statThreeTitle">واجهة</strong>
+                            <span data-i18n="statThree">واضحة ومريحة للعين</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card section">
+                    <h3 data-i18n="servicesTitle">الخدمات</h3>
+                    <p data-i18n="servicesText">اختر الخدمة المناسبة.</p>
+                    <div class="services" style="margin-top: 18px;">
+                        <article class="service-card">
+                            <h4 data-i18n="serviceCameraTitle">التعرف على الإشارات</h4>
+                            <p data-i18n="serviceCameraText">تشغيل الكاميرا ومتابعة النتيجة مباشرة.</p>
+                            <a href="camera.html" data-i18n="openPage">فتح الصفحة</a>
+                        </article>
+                        <article class="service-card">
+                            <h4 data-i18n="serviceSignTitle">تحويل النص إلى إشارة</h4>
+                            <p data-i18n="serviceSignText">إدخال النص وعرض الإشارات بسرعة.</p>
+                            <a href="text-to-sign.html" data-i18n="openPage">فتح الصفحة</a>
+                        </article>
+                        <article class="service-card">
+                            <h4 data-i18n="serviceSpeechTitle">تحويل النص إلى كلام</h4>
+                            <p data-i18n="serviceSpeechText">كتابة النص والاستماع له مباشرة.</p>
+                            <a href="text%20to%20sound.html" data-i18n="openPage">فتح الصفحة</a>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="card section">
+                    <h3 data-i18n="stepsTitle">طريقة الاستخدام</h3>
+                    <p data-i18n="stepsText">ثلاث خطوات سريعة.</p>
+                    <div class="steps" style="margin-top: 18px;">
+                        <div class="step">
+                            <div class="step-number">1</div>
+                            <h4 data-i18n="stepOneTitle">افتح القائمة</h4>
+                            <p data-i18n="stepOneText">انتقل بين الصفحات بسرعة.</p>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">2</div>
+                            <h4 data-i18n="stepTwoTitle">اختر الخدمة</h4>
+                            <p data-i18n="stepTwoText">افتح الصفحة المناسبة لاحتياجك.</p>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">3</div>
+                            <h4 data-i18n="stepThreeTitle">ابدأ الاستخدام</h4>
+                            <p data-i18n="stepThreeText">استخدم الأزرار والبطاقات مباشرة.</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="footer" data-i18n="footerText">منصة التواصل للصم والبكم</div>
+        </main>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const menuToggle = document.getElementById('menuToggle');
+        const themeToggle = document.getElementById('themeToggle');
+        const platformLanguageSelect = document.getElementById('platformLanguageSelect');
+
+        const uiTranslations = {
+            ar: {
+                documentTitle: 'منصة التواصل للصم والبكم - الرئيسية',
+                brandTitle: 'منصة التواصل',
+                brandText: 'تنقل سريع وواضح بين الخدمات.',
+                navHome: 'الرئيسية',
+                navCamera: 'التعرف على الإشارات',
+                navTextSign: 'النص إلى إشارة',
+                navTextSpeech: 'النص إلى كلام',
+                languageLabel: 'لغة المنصة',
+                themeLabel: 'المظهر',
+                sidebarNote: 'واجهة مختصرة بدون عناصر مكررة.',
+                menuBtn: 'القائمة',
+                pageTitle: 'الصفحة الرئيسية',
+                pageIntro: 'كل الخدمات في مكان واحد.',
+                heroTitle: 'منصة تساعد على تسهيل التواصل باستخدام لغة الإشارة',
+                heroText: 'اختر الخدمة التي تحتاجها وابدأ مباشرة.',
+                heroBtnCamera: 'ابدأ التعرف',
+                heroBtnSign: 'حوّل النص',
+                heroBtnSpeech: 'شغّل النطق',
+                statOne: 'خدمات رئيسية',
+                statTwo: 'قائمة جانبية موحدة',
+                statThreeTitle: 'واجهة',
+                statThree: 'واضحة ومريحة للعين',
+                servicesTitle: 'الخدمات',
+                servicesText: 'اختر الخدمة المناسبة.',
+                serviceCameraTitle: 'التعرف على الإشارات',
+                serviceCameraText: 'تشغيل الكاميرا ومتابعة النتيجة مباشرة.',
+                serviceSignTitle: 'تحويل النص إلى إشارة',
+                serviceSignText: 'إدخال النص وعرض الإشارات بسرعة.',
+                serviceSpeechTitle: 'تحويل النص إلى كلام',
+                serviceSpeechText: 'كتابة النص والاستماع له مباشرة.',
+                openPage: 'فتح الصفحة',
+                stepsTitle: 'طريقة الاستخدام',
+                stepsText: 'ثلاث خطوات سريعة.',
+                stepOneTitle: 'افتح القائمة',
+                stepOneText: 'انتقل بين الصفحات بسرعة.',
+                stepTwoTitle: 'اختر الخدمة',
+                stepTwoText: 'افتح الصفحة المناسبة لاحتياجك.',
+                stepThreeTitle: 'ابدأ الاستخدام',
+                stepThreeText: 'استخدم الأزرار والبطاقات مباشرة.',
+                footerText: 'منصة التواصل للصم والبكم',
+                themeToDark: 'تفعيل الوضع الداكن',
+                themeToLight: 'تفعيل الوضع الفاتح'
+            },
+            en: {
+                documentTitle: 'Communication Platform - Home',
+                brandTitle: 'Communication Platform',
+                brandText: 'Clear, fast access to all services.',
+                navHome: 'Home',
+                navCamera: 'Sign Recognition',
+                navTextSign: 'Text to Sign',
+                navTextSpeech: 'Text to Speech',
+                languageLabel: 'Platform Language',
+                themeLabel: 'Appearance',
+                sidebarNote: 'A clean layout with no repeated elements.',
+                menuBtn: 'Menu',
+                pageTitle: 'Home',
+                pageIntro: 'All services in one place.',
+                heroTitle: 'A platform that makes communication easier with sign language',
+                heroText: 'Choose a service and start right away.',
+                heroBtnCamera: 'Start Recognition',
+                heroBtnSign: 'Convert Text',
+                heroBtnSpeech: 'Play Speech',
+                statOne: 'Core services',
+                statTwo: 'Unified sidebar',
+                statThreeTitle: 'Interface',
+                statThree: 'Clear and easy on the eyes',
+                servicesTitle: 'Services',
+                servicesText: 'Choose the service you need.',
+                serviceCameraTitle: 'Sign Recognition',
+                serviceCameraText: 'Open the camera and follow the result live.',
+                serviceSignTitle: 'Text to Sign',
+                serviceSignText: 'Type text and view signs quickly.',
+                serviceSpeechTitle: 'Text to Speech',
+                serviceSpeechText: 'Type text and listen instantly.',
+                openPage: 'Open Page',
+                stepsTitle: 'How To Use',
+                stepsText: 'Three quick steps.',
+                stepOneTitle: 'Open Menu',
+                stepOneText: 'Move between pages quickly.',
+                stepTwoTitle: 'Choose Service',
+                stepTwoText: 'Open the page that matches your task.',
+                stepThreeTitle: 'Start',
+                stepThreeText: 'Use the cards and buttons directly.',
+                footerText: 'Communication Platform for Deaf and Mute Users',
+                themeToDark: 'Enable Dark Mode',
+                themeToLight: 'Enable Light Mode'
+            }
+        };
+
+        function setSidebarState(open) {
+            if (window.innerWidth <= 1024) {
+                sidebar.classList.toggle('open', open);
+            } else {
+                sidebar.classList.toggle('closed', !open);
+            }
+            overlay.classList.toggle('visible', open && window.innerWidth <= 1024);
+        }
+
+        menuToggle.addEventListener('click', () => {
+            const isMobile = window.innerWidth <= 1024;
+            const open = isMobile ? !sidebar.classList.contains('open') : sidebar.classList.contains('closed');
+            setSidebarState(open);
+        });
+
+        overlay.addEventListener('click', () => setSidebarState(false));
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 1024) {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('visible');
+            }
+        });
+
+        function getStoredLanguage() {
+            return localStorage.getItem('platform-language') || 'ar';
+        }
+
+        function getStoredTheme() {
+            return localStorage.getItem('platform-theme') || 'light';
+        }
+
+        function updateThemeButton() {
+            const lang = getStoredLanguage();
+            const theme = getStoredTheme();
+            const text = theme === 'dark'
+                ? uiTranslations[lang].themeToLight
+                : uiTranslations[lang].themeToDark;
+            themeToggle.textContent = text;
+        }
+
+        function applyPlatformLanguage(lang) {
+            const messages = uiTranslations[lang] || uiTranslations.ar;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+            document.body.classList.toggle('ltr', lang === 'en');
+            document.title = messages.documentTitle;
+            platformLanguageSelect.value = lang;
+            document.querySelectorAll('[data-i18n]').forEach((element) => {
+                const key = element.dataset.i18n;
+                if (messages[key]) {
+                    element.textContent = messages[key];
+                }
+            });
+            localStorage.setItem('platform-language', lang);
+            updateThemeButton();
+        }
+
+        function applyTheme(theme) {
+            document.body.dataset.theme = theme;
+            localStorage.setItem('platform-theme', theme);
+            updateThemeButton();
+        }
+
+        platformLanguageSelect.addEventListener('change', (event) => {
+            applyPlatformLanguage(event.target.value);
+        });
+
+        themeToggle.addEventListener('click', () => {
+            const nextTheme = getStoredTheme() === 'dark' ? 'light' : 'dark';
+            applyTheme(nextTheme);
+        });
+
+        applyTheme(getStoredTheme());
+        applyPlatformLanguage(getStoredLanguage());
+    </script>
+</body>
+</html>
